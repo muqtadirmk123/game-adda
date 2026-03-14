@@ -9,7 +9,6 @@ interface Game { id: number; title: string; thumbnail_url: string; iframe_url: s
 interface Player { name: string; lastSeen: number; }
 
 export default function Home() {
-  // States: Added 'playing' state to render game without leaving the page
   const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard' | 'playing'>('home');
   const [games, setGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
@@ -44,12 +43,11 @@ export default function Home() {
     }
   };
 
-  // 🔌 15-Second FAST Auto Disconnect
   useEffect(() => {
     const timer = setInterval(() => {
        if (viewStateRef.current === 'dashboard' || viewStateRef.current === 'pairing' || viewStateRef.current === 'playing') {
           const now = Date.now();
-          const activePlayers = playersRef.current.filter(p => now - p.lastSeen < 15000); // 15 seconds timeout
+          const activePlayers = playersRef.current.filter(p => now - p.lastSeen < 15000); 
           
           if (activePlayers.length === 0 && playersRef.current.length > 0) {
              exitFullScreen();
@@ -61,7 +59,7 @@ export default function Home() {
              setPlayers(activePlayers);
           }
        }
-    }, 3000); // Check every 3 seconds
+    }, 3000); 
     return () => clearInterval(timer);
   }, []);
 
@@ -87,12 +85,12 @@ export default function Home() {
     } catch (e) {}
   };
 
-  const simulateKeyPress = (command: string) => {
-    const keyMap: any = { 'UP': 'ArrowUp', 'DOWN': 'ArrowDown', 'LEFT': 'ArrowLeft', 'RIGHT': 'ArrowRight', 'A': 'z', 'B': 'x', 'X': 'Enter', 'Y': 'Shift' };
-    const key = keyMap[command];
-    if (key) {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key }));
-      setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { key })), 100);
+  // 🔥 IMPORTANT: This is how we send commands to 3rd party games!
+  const sendCommandToGame = (command: string) => {
+    const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      // Send message to the iframe
+      iframe.contentWindow.postMessage({ type: 'CONTROLLER_COMMAND', command }, '*');
     }
   };
 
@@ -143,10 +141,8 @@ export default function Home() {
           const cmd = payload.payload.command;
           const name = payload.payload.playerName || 'Player';
           
-          // Update ping
           setPlayers(prev => prev.map(p => p.name === name ? { ...p, lastSeen: Date.now() } : p));
 
-          // GLOBAL COMMANDS
           if (cmd === 'MUTE') {
              isMutedRef.current = !isMutedRef.current;
              return;
@@ -160,19 +156,18 @@ export default function Home() {
              return;
           }
 
-          // PLAYING STATE COMMANDS
+          // 🔥 FIXED: Handle 'playing' state logic
           if (viewStateRef.current === 'playing') {
              if (cmd === 'HOME') {
                playSound('select');
                setViewState('dashboard');
                setActiveGame(null);
              } else {
-               simulateKeyPress(cmd);
+               sendCommandToGame(cmd); // Send to iframe instead of window
              }
              return;
           }
 
-          // DASHBOARD COMMANDS
           if (viewStateRef.current === 'dashboard') {
              if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') playSound('select');
              else if (cmd !== 'HOME') playSound('move');
@@ -222,13 +217,15 @@ export default function Home() {
     );
   };
 
-  // -------------------------
-  // PLAYING STATE (FULLSCREEN GAME)
-  // -------------------------
   if (viewState === 'playing' && activeGame) {
     return (
       <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
-        <iframe src={activeGame.iframe_url} className="w-full h-full border-none outline-none" allowFullScreen />
+        <iframe 
+          id="game-iframe" // Required for sendCommandToGame
+          src={activeGame.iframe_url} 
+          className="w-full h-full border-none outline-none" 
+          allowFullScreen 
+        />
         <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-white/70 text-[10px] font-black tracking-[4px] uppercase border border-white/10 pointer-events-none shadow-2xl">
           Press HOME on mobile to exit
         </div>
@@ -236,9 +233,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // SPLASH SCREEN
-  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden">
@@ -255,9 +249,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // PAIRING SCREEN
-  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen flex bg-[#050511] font-sans">
@@ -296,9 +287,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // CONSOLE DASHBOARD
-  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -360,9 +348,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // LANDING PAGE
-  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
