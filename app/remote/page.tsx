@@ -9,12 +9,10 @@ function RemoteController() {
   const [roomCode, setRoomCode] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [battery] = useState('85%');
 
   useEffect(() => {
     const codeFromURL = searchParams.get('code');
     const autoConnect = searchParams.get('auto');
-
     if (codeFromURL) {
       setRoomCode(codeFromURL);
       if (autoConnect === 'true') handleAutoConnect(codeFromURL);
@@ -23,12 +21,7 @@ function RemoteController() {
     if (isConnected && roomCode) {
       const channel = supabase
         .channel(`room-${roomCode}`)
-        .on('postgres_changes', { 
-          event: 'UPDATE', 
-          schema: 'public', 
-          table: 'rooms', 
-          filter: `room_code=eq.${roomCode}` 
-        }, 
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${roomCode}` }, 
         (payload: any) => {
           if (payload.new.status === 'vibrate' && navigator.vibrate) {
             navigator.vibrate([200, 100, 200]); 
@@ -44,18 +37,9 @@ function RemoteController() {
     if (data) {
       await supabase.from('rooms').update({ status: 'connected' }).eq('room_code', code);
       setIsConnected(true);
-      setupController();
+      if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
     }
     setLoading(false);
-  };
-
-  const setupController = () => {
-    if (document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-    if (typeof screen.orientation !== 'undefined' && (screen.orientation as any).lock) {
-      (screen.orientation as any).lock('landscape').catch(() => {});
-    }
   };
 
   const sendCommand = async (command: string) => {
@@ -64,7 +48,7 @@ function RemoteController() {
 
     await supabase.from('rooms').update({ 
       last_command: command, 
-      updated_at: new Date() 
+      updated_at: new Date().toISOString() 
     }).eq('room_code', roomCode);
 
     setTimeout(async () => {
@@ -86,48 +70,42 @@ function RemoteController() {
   }
 
   return (
-    <main className="min-h-screen bg-[#e2e2e7] text-black flex items-center justify-between px-16 font-sans touch-none select-none overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-white/40 to-transparent pointer-events-none"></div>
+    <main className="h-screen w-screen bg-[#e2e2e7] text-black flex items-center justify-between px-10 font-sans touch-none select-none overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none"></div>
 
-      {/* 🔋 Status Icons */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 flex items-center gap-6 opacity-30">
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-            <span>Signal</span> <div className="flex gap-0.5 items-end h-3"><div className="w-1 h-1 bg-black"></div><div className="w-1 h-2 bg-black"></div><div className="w-1 h-3 bg-black"></div></div>
-        </div>
-        <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest">
-            <span>{battery}</span> <div className="w-5 h-2.5 border border-black rounded-sm p-0.5 flex items-center"><div className="h-full bg-black w-3/4"></div></div>
-        </div>
-      </div>
-
-      {/* 🕹️ Left Side */}
-      <div className="flex flex-col gap-10 items-center z-10">
-         <div className="grid grid-cols-3 gap-1 bg-black/5 p-2 rounded-2xl border border-black/5">
-            <div /> <button onTouchStart={() => sendCommand('UP')} className="w-16 h-16 bg-white shadow-md rounded-xl flex items-center justify-center text-xl active:bg-blue-100">▲</button> <div />
-            <button onTouchStart={() => sendCommand('LEFT')} className="w-16 h-16 bg-white shadow-md rounded-xl flex items-center justify-center text-xl active:bg-blue-100">◀</button>
-            <div className="w-16 h-16 bg-black/5 rounded-full" />
-            <button onTouchStart={() => sendCommand('RIGHT')} className="w-16 h-16 bg-white shadow-md rounded-xl flex items-center justify-center text-xl active:bg-blue-100">▶</button>
-            <div /> <button onTouchStart={() => sendCommand('DOWN')} className="w-16 h-16 bg-white shadow-md rounded-xl flex items-center justify-center text-xl active:bg-blue-100">▼</button> <div />
+      {/* 🕹️ Left Section: D-PAD */}
+      <div className="flex flex-col items-center justify-center gap-4 h-full relative z-10">
+         <div className="relative w-32 h-32 bg-black/5 rounded-3xl p-2 grid grid-cols-3 grid-rows-3 gap-1 shadow-inner">
+            <div /> <button onTouchStart={() => sendCommand('UP')} className="w-full h-full bg-white shadow-sm rounded-lg flex items-center justify-center text-xs active:bg-blue-100 transition-colors">▲</button> <div />
+            <button onTouchStart={() => sendCommand('LEFT')} className="w-full h-full bg-white shadow-sm rounded-lg flex items-center justify-center text-xs active:bg-blue-100 transition-colors">◀</button>
+            <div className="bg-black/5 rounded-full" />
+            <button onTouchStart={() => sendCommand('RIGHT')} className="w-full h-full bg-white shadow-sm rounded-lg flex items-center justify-center text-xs active:bg-blue-100 transition-colors">▶</button>
+            <div /> <button onTouchStart={() => sendCommand('DOWN')} className="w-full h-full bg-white shadow-sm rounded-lg flex items-center justify-center text-xs active:bg-blue-100 transition-colors">▼</button> <div />
          </div>
-         <div className="w-32 h-32 bg-[#d1d1d6] rounded-full shadow-inner flex items-center justify-center border-4 border-white"><div className="w-16 h-16 bg-[#2c2c2e] rounded-full shadow-2xl"></div></div>
+         <div className="w-24 h-24 bg-[#d1d1d6] rounded-full shadow-inner flex items-center justify-center border-4 border-white">
+            <div className="w-14 h-14 bg-[#2c2c2e] rounded-full shadow-2xl border-2 border-black/20"></div>
+         </div>
       </div>
 
-      {/* 🎮 Center: PS5 Touchpad Style */}
-      <div className="flex flex-col items-center gap-6">
-        <div className="w-64 h-32 bg-[#f0f0f5] border-x-4 border-b-4 border-black/5 rounded-b-[4rem] shadow-sm flex items-end justify-center pb-6">
-            <div className="w-20 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
+      {/* 🎮 Center: Touchpad & Branding */}
+      <div className="flex flex-col items-center justify-center gap-4 h-full pt-6">
+        <div className="w-56 h-28 bg-[#f0f0f5] border-x-4 border-b-4 border-black/5 rounded-b-[3.5rem] shadow-sm flex items-end justify-center pb-4">
+            <div className="w-16 h-1 bg-blue-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
         </div>
-        <p className="text-[10px] font-black text-black/20 tracking-[8px] uppercase italic">Sony Interactive</p>
+        <div className="text-[8px] font-black text-black/20 tracking-[8px] uppercase italic text-center">Sony Interactive<br/>Entertainment</div>
       </div>
 
-      {/* 🔘 Right Side: Action Buttons */}
-      <div className="flex flex-col gap-10 items-center z-10">
-        <div className="grid grid-cols-2 gap-5">
-            <button onTouchStart={() => sendCommand('Y')} className="w-18 h-18 bg-[#2c2c2e] text-white/40 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-2xl">△</button>
-            <button onTouchStart={() => sendCommand('B')} className="w-18 h-18 bg-[#2c2c2e] text-white/40 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-2xl">○</button>
-            <button onTouchStart={() => sendCommand('X')} className="w-18 h-18 bg-[#2c2c2e] text-white/40 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-2xl">□</button>
-            <button onTouchStart={() => sendCommand('SELECT')} className="w-18 h-18 bg-blue-600 text-white rounded-full font-bold shadow-xl active:bg-blue-700 flex items-center justify-center text-2xl italic">✕</button>
+      {/* 🔘 Right Section: Actions */}
+      <div className="flex flex-col items-center justify-center gap-4 h-full relative z-10">
+        <div className="grid grid-cols-2 gap-3 p-2">
+            <button onTouchStart={() => sendCommand('Y')} className="w-14 h-14 bg-[#2c2c2e] text-white/50 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-xl">△</button>
+            <button onTouchStart={() => sendCommand('B')} className="w-14 h-14 bg-[#2c2c2e] text-white/50 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-xl">○</button>
+            <button onTouchStart={() => sendCommand('X')} className="w-14 h-14 bg-[#2c2c2e] text-white/50 rounded-full font-bold shadow-xl active:bg-blue-600 flex items-center justify-center text-xl">□</button>
+            <button onTouchStart={() => sendCommand('SELECT')} className="w-14 h-14 bg-blue-600 text-white rounded-full font-bold shadow-xl active:bg-blue-700 flex items-center justify-center text-xl italic">✕</button>
         </div>
-         <div className="w-32 h-32 bg-[#d1d1d6] rounded-full shadow-inner flex items-center justify-center border-4 border-white"><div className="w-16 h-16 bg-[#2c2c2e] rounded-full shadow-2xl"></div></div>
+         <div className="w-24 h-24 bg-[#d1d1d6] rounded-full shadow-inner flex items-center justify-center border-4 border-white">
+            <div className="w-14 h-14 bg-[#2c2c2e] rounded-full shadow-2xl border-2 border-black/20"></div>
+         </div>
       </div>
     </main>
   );
