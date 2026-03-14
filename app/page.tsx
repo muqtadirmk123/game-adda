@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
 interface Game { id: number; title: string; thumbnail_url: string; category: string; }
 
-export default function Home() {
+function MainApp() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard'>('home');
   const [games, setGames] = useState<Game[]>([]);
@@ -24,50 +25,21 @@ export default function Home() {
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
   const roomCodeRef = useRef('');
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
 
-  const initAudio = () => {
-    if (!audioCtxRef.current) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      if (AudioContextClass) {
-        const ctx = new AudioContextClass();
-        audioCtxRef.current = ctx;
-        if (ctx.state === 'suspended') ctx.resume();
-      }
-    } else if (audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+  // 🖥️ Desktop Fullscreen Function
+  const enterFullScreen = () => {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch((err) => console.log(err));
     }
   };
 
-  const playSound = (type: 'move' | 'select') => {
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
-    try {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      if (type === 'move') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.05);
-      } else if (type === 'select') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(600, ctx.currentTime);
-        osc.frequency.setValueAtTime(800, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.15);
-      }
-    } catch (e) {}
+  const exitFullScreen = () => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch((err) => console.log(err));
+    }
   };
 
   useEffect(() => {
@@ -83,26 +55,25 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       
-      // 💾 SESSION RESTORE (Agar game se wapas aaye hain toh purana code use karo)
-      let code = sessionStorage.getItem('ga_roomCode');
-      let isReturning = false;
+      // 🔥 Check if returning from a Game via HOME button
+      const stateFromURL = searchParams.get('state');
+      const roomFromURL = searchParams.get('room');
+
+      let code = roomFromURL || sessionStorage.getItem('ga_roomCode');
       
       if (!code) {
         code = Math.floor(100000 + Math.random() * 900000).toString();
         sessionStorage.setItem('ga_roomCode', code);
         await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
-      } else {
-        const { data } = await supabase.from('rooms').select('status').eq('room_code', code).single();
-        if (data && data.status === 'playing') isReturning = true;
       }
       
       setRoomCode(code);
       roomCodeRef.current = code;
 
-      // Agar direct game se wapas aaye hain toh dashboard khol do
-      if (isReturning) {
+      // If coming back from game, jump to dashboard
+      if (stateFromURL === 'dashboard') {
         setViewState('dashboard');
-        initAudio(); // Auto init audio if returning
+        enterFullScreen();
       }
 
       const channel = supabase.channel(`room-${code}`)
@@ -110,9 +81,6 @@ export default function Home() {
           const cmd = payload.payload.command;
 
           if (viewStateRef.current === 'dashboard') {
-             if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') playSound('select');
-             else if (cmd !== 'HOME') playSound('move');
-
              setSelectedIndex((prev) => {
                const list = gamesRef.current;
                const total = list.length;
@@ -126,10 +94,9 @@ export default function Home() {
                if (cmd === 'SELECT') {
                  const selectedGame = list[prev];
                  if (selectedGame && selectedGame.id) {
-                   // Navigate to game with room code attached
                    router.push(`/game/${selectedGame.id}?room=${roomCodeRef.current}`);
                  } else {
-                   setSystemError("GAME NOT AVAILABLE");
+                   setSystemError("GAME NOT AVAILABLE YET");
                    setTimeout(() => setSystemError(null), 3000);
                  }
                }
@@ -141,7 +108,7 @@ export default function Home() {
         (payload: any) => {
           const status = payload.new.status;
           if (status === 'playing' && viewStateRef.current === 'pairing') {
-            playSound('select');
+            enterFullScreen(); // Trigger Desktop Fullscreen!
             setViewState('splash');
             setTimeout(() => setViewState('dashboard'), 3000);
           }
@@ -150,7 +117,7 @@ export default function Home() {
       return () => { supabase.removeChannel(channel); };
     }
     init();
-  }, [router]);
+  }, [router, searchParams]);
 
   const handleFilter = (category: string) => {
     setActiveCategory(category);
@@ -217,7 +184,7 @@ export default function Home() {
            <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-[#050511]/30"></div>
         </div>
 
-        {/* 🌟 NEW TOP BAR (AirConsole Style) */}
+        {/* 🌟 Top Bar with Exit Fullscreen Button */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
            <div className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center text-black font-black">G</div>
@@ -227,13 +194,16 @@ export default function Home() {
            <div className="flex gap-4 items-center">
               <div className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
                  <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black">A</span>
-                 <span className="tracking-widest uppercase text-sm">Player 1</span>
+                 <span className="tracking-widest uppercase text-sm">AMK</span>
               </div>
               <div className="bg-black/80 border border-[#1ed760]/30 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_20px_rgba(30,215,96,0.1)]">
-                 <svg className="w-4 h-4 text-[#1ed760]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
+              {/* EXIT FULLSCREEN MOUSE BUTTON */}
+              <button onClick={exitFullScreen} className="bg-white/10 hover:bg-white/20 border border-white/20 p-2.5 rounded-xl text-white transition-colors cursor-pointer" title="Exit Fullscreen">
+                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+              </button>
            </div>
         </div>
 
@@ -300,7 +270,7 @@ export default function Home() {
         </p>
         <button 
           onClick={() => {
-            initAudio();
+            enterFullScreen();
             setViewState('pairing');
           }}
           className="bg-[#1ed760] text-black px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(30,215,96,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10"
@@ -333,5 +303,13 @@ export default function Home() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#050511]" />}>
+      <MainApp />
+    </Suspense>
   );
 }

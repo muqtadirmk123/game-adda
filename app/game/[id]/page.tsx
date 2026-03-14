@@ -25,15 +25,14 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
     }
     fetchGame();
 
-    // 📡 Listen to real-time controller commands
     if (roomCode) {
       const channel = supabase.channel(`room-${roomCode}`)
         .on('broadcast', { event: 'command' }, (payload) => {
           const cmd = payload.payload.command;
           
-          // Agar controller se 'HOME' dabaya toh wapas Dashboard par jao
+          // 🔥 Fix: Wapas Gaming Portal (Dashboard) par jao, Landing page par nahi
           if (cmd === 'HOME') {
-            router.push('/');
+            router.push(`/?state=dashboard&room=${roomCode}`);
           } else {
             simulateKeyPress(cmd);
           }
@@ -44,7 +43,6 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
   }, [resolvedParams.id, roomCode, router]);
 
   const simulateKeyPress = (command: string) => {
-    // Basic Key Mapping for web games
     const keyMap: any = { 
       'UP': 'ArrowUp', 'DOWN': 'ArrowDown', 'LEFT': 'ArrowLeft', 'RIGHT': 'ArrowRight', 
       'A': 'z', 'B': 'x', 'X': 'Enter', 'Y': 'Shift' 
@@ -58,7 +56,6 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
 
   if (!game) return <div className="min-h-screen bg-black"></div>;
 
-  // 🎮 100% FULLSCREEN IMMERSIVE MODE
   return (
     <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none">
       <iframe 
@@ -66,9 +63,8 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
         className="w-full h-full border-none outline-none" 
         allowFullScreen 
       />
-      {/* Subtle hint overlay */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md px-6 py-2 rounded-full text-white/50 text-[10px] font-black tracking-[4px] uppercase border border-white/10 pointer-events-none shadow-2xl">
-        Press HOME on your controller to exit
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-white/70 text-[10px] font-black tracking-[4px] uppercase border border-white/10 pointer-events-none shadow-2xl">
+        Press HOME on mobile to exit
       </div>
     </main>
   );
