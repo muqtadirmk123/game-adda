@@ -23,12 +23,12 @@ export default function Home() {
   
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
+  const roomCodeRef = useRef('');
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
 
-  // Synthesize sounds with Web Audio API so you don't need MP3 files
   const initAudio = () => {
     if (!audioCtxRef.current) {
       const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -50,7 +50,6 @@ export default function Home() {
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-
       if (type === 'move') {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(400, ctx.currentTime);
@@ -68,9 +67,7 @@ export default function Home() {
         osc.start();
         osc.stop(ctx.currentTime + 0.15);
       }
-    } catch (e) {
-      console.error("Audio error", e);
-    }
+    } catch (e) {}
   };
 
   useEffect(() => {
@@ -86,20 +83,35 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // 💾 SESSION RESTORE (Agar game se wapas aaye hain toh purana code use karo)
+      let code = sessionStorage.getItem('ga_roomCode');
+      let isReturning = false;
+      
+      if (!code) {
+        code = Math.floor(100000 + Math.random() * 900000).toString();
+        sessionStorage.setItem('ga_roomCode', code);
+        await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
+      } else {
+        const { data } = await supabase.from('rooms').select('status').eq('room_code', code).single();
+        if (data && data.status === 'playing') isReturning = true;
+      }
+      
       setRoomCode(code);
-      await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
+      roomCodeRef.current = code;
+
+      // Agar direct game se wapas aaye hain toh dashboard khol do
+      if (isReturning) {
+        setViewState('dashboard');
+        initAudio(); // Auto init audio if returning
+      }
 
       const channel = supabase.channel(`room-${code}`)
         .on('broadcast', { event: 'command' }, (payload) => {
           const cmd = payload.payload.command;
 
           if (viewStateRef.current === 'dashboard') {
-             if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') {
-                 playSound('select');
-             } else {
-                 playSound('move');
-             }
+             if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') playSound('select');
+             else if (cmd !== 'HOME') playSound('move');
 
              setSelectedIndex((prev) => {
                const list = gamesRef.current;
@@ -114,9 +126,10 @@ export default function Home() {
                if (cmd === 'SELECT') {
                  const selectedGame = list[prev];
                  if (selectedGame && selectedGame.id) {
-                   router.push(`/game/${selectedGame.id}`);
+                   // Navigate to game with room code attached
+                   router.push(`/game/${selectedGame.id}?room=${roomCodeRef.current}`);
                  } else {
-                   setSystemError("GAME NOT AVAILABLE YET");
+                   setSystemError("GAME NOT AVAILABLE");
                    setTimeout(() => setSystemError(null), 3000);
                  }
                }
@@ -127,7 +140,6 @@ export default function Home() {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${code}` }, 
         (payload: any) => {
           const status = payload.new.status;
-
           if (status === 'playing' && viewStateRef.current === 'pairing') {
             playSound('select');
             setViewState('splash');
@@ -196,34 +208,43 @@ export default function Home() {
   }
 
   if (viewState === 'dashboard') {
-    const activeGame = games[selectedIndex];
+    const activeGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
         <div className="absolute inset-0 z-0">
-           <img src={activeGame?.thumbnail_url} className="w-full h-full object-cover opacity-80 transition-all duration-500" />
-           <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/70 to-[#111]/30"></div>
-           <div className="absolute inset-0 bg-gradient-to-r from-[#111] via-[#111]/50 to-transparent"></div>
+           <img src={activeGame?.thumbnail_url} className="w-full h-full object-cover opacity-60 transition-all duration-500 scale-105 blur-md" />
+           <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-[#050511]/30"></div>
         </div>
 
-        <div className="relative z-10 w-full p-6 flex justify-between items-center">
-           <div className="text-xl font-extrabold tracking-tighter text-white">
-              <span className="text-cyan-400">Game</span>Adda
+        {/* 🌟 NEW TOP BAR (AirConsole Style) */}
+        <div className="relative z-10 w-full p-8 flex justify-between items-center">
+           <div className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center text-black font-black">G</div>
+              <span>Game<span className="text-cyan-400">Adda</span></span>
            </div>
-           <div className="bg-black/50 border border-white/10 px-4 py-2 rounded-lg text-white font-bold flex items-center gap-2">
-              <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs">A</span>
-              P1 Connected
+           
+           <div className="flex gap-4 items-center">
+              <div className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
+                 <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black">A</span>
+                 <span className="tracking-widest uppercase text-sm">Player 1</span>
+              </div>
+              <div className="bg-black/80 border border-[#1ed760]/30 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_20px_rgba(30,215,96,0.1)]">
+                 <svg className="w-4 h-4 text-[#1ed760]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                 <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
+                 <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
+              </div>
            </div>
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-10">
            <div className="max-w-2xl mb-6">
-              <h4 className="text-white text-sm font-bold tracking-widest uppercase mb-2">Featured Game</h4>
+              <h4 className="text-cyan-400 text-sm font-bold tracking-widest uppercase mb-2">Featured Game</h4>
               <h1 className="text-6xl font-black text-white mb-6 leading-tight drop-shadow-lg">{activeGame?.title || 'Unknown Game'}</h1>
               <div className="flex items-center gap-4 mb-6 text-yellow-400 text-lg">
-                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| Arcade</span>
+                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| {activeGame?.category || 'Arcade'}</span>
               </div>
-              <button className="bg-white text-black px-10 py-4 rounded-xl font-black text-xl flex items-center gap-3">
+              <button className="bg-[#1ed760] text-black px-10 py-4 rounded-xl font-black text-xl flex items-center gap-3 shadow-lg">
                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                  Play now
               </button>
@@ -231,7 +252,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 h-48 px-16 pb-8 flex items-center gap-6 overflow-x-hidden">
-           {games.map((game, idx) => (
+           {filteredGames.map((game, idx) => (
              <div 
                key={game.id} 
                className={`relative min-w-[240px] h-36 rounded-2xl overflow-hidden transition-all duration-300 shadow-xl ${selectedIndex === idx ? 'border-4 border-[#1ed760] scale-105' : 'border border-white/10 opacity-60 scale-95'}`}

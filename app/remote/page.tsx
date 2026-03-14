@@ -12,7 +12,6 @@ function RemoteController() {
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
-    // Lock scrolling on mobile to prevent pull-to-refresh and layout shifting
     const preventScroll = (e: TouchEvent) => e.preventDefault();
     document.addEventListener('touchmove', preventScroll, { passive: false });
     return () => document.removeEventListener('touchmove', preventScroll);
@@ -24,17 +23,13 @@ function RemoteController() {
       setRoomCode(code);
       handleConnectToLobby(code);
 
-      // Initialize realtime broadcast channel
       const channel = supabase.channel(`room-${code}`);
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;
         }
       });
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => { supabase.removeChannel(channel); };
     }
   }, [searchParams]);
 
@@ -54,16 +49,13 @@ function RemoteController() {
     setRemoteState('controller');
   };
 
-  // 🔥 YAHAN MASLA THA - Ab broadcast delay-free aur zero drops ke sath chalega
   const sendCommand = (command: string) => {
     if (remoteState !== 'controller') return;
     
-    // Vibrate & button press effect
     if (navigator.vibrate) navigator.vibrate(50);
     setActiveBtn(command);
-    setTimeout(() => setActiveBtn(null), 150); // Visual UI reset only
+    setTimeout(() => setActiveBtn(null), 150);
     
-    // Broadcast message fast and without DB overhead
     if (channelRef.current) {
       channelRef.current.send({
         type: 'broadcast',
@@ -94,7 +86,6 @@ function RemoteController() {
     );
   }
 
-  // 📱 PERFECT MOBILE UI LOGIC
   return (
     <main className="fixed inset-0 w-[100dvw] h-[100dvh] bg-[#e2e2e7] flex flex-row items-center justify-between px-4 sm:px-10 touch-none select-none overflow-hidden font-sans overscroll-none">
       
@@ -111,12 +102,20 @@ function RemoteController() {
         </div>
       </div>
 
-      {/* CENTER: TOUCHPAD */}
-      <div className="flex-1 flex flex-col items-center justify-start h-full pt-2">
+      {/* CENTER: TOUCHPAD & HOME BUTTON */}
+      <div className="flex-1 flex flex-col items-center justify-start h-full pt-2 relative">
         <div className="w-[80%] max-w-[180px] h-16 sm:h-20 bg-[#f0f0f5] border-x-4 border-b-8 border-black/5 rounded-b-[2.5rem] flex items-end justify-center pb-2 shadow-sm">
           <div className="w-12 h-1 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.6)]"></div>
         </div>
         <div className="text-[9px] font-black opacity-30 mt-3 tracking-[5px] uppercase italic text-center">DualSense</div>
+        
+        {/* 🏠 NAYA HOME BUTTON */}
+        <button 
+          onTouchStart={() => sendCommand('HOME')} 
+          className={`mt-4 w-12 h-8 rounded-full border border-black/10 shadow-inner flex items-center justify-center transition-all ${activeBtn === 'HOME' ? 'bg-black/20 scale-90' : 'bg-black/10'}`}
+        >
+           <div className="w-4 h-4 bg-white/60 rounded-full"></div>
+        </button>
       </div>
 
       {/* RIGHT: ACTION BUTTONS */}
