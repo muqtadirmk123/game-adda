@@ -44,20 +44,18 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
       // 3. Listen for Realtime Controller Commands
       const channel = supabase
         .channel(`room-${generatedCode}`)
+        .on('broadcast', { event: 'command' }, (payload) => {
+          const command = payload.payload.command;
+          console.log("Mobile Command Received:", command);
+          simulateKeyPress(command);
+        })
         .on(
           'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${generatedCode}` },
           (payload: any) => {
             const newStatus = payload.new.status;
-            const lastCommand = payload.new.last_command;
 
             if (newStatus === 'connected') setControllerStatus('Connected ✅');
-            
-            if (lastCommand) {
-              console.log("Mobile Command Received:", lastCommand);
-              // Yahan hum game ko command bhejenge (Keyboard simulation)
-              simulateKeyPress(lastCommand);
-            }
           }
         )
         .subscribe();

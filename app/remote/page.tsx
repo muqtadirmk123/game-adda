@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 
@@ -9,12 +9,32 @@ function RemoteController() {
   const [roomCode, setRoomCode] = useState('');
   const [remoteState, setRemoteState] = useState<'connecting' | 'lobby' | 'controller'>('connecting');
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
+  const channelRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Lock scrolling on mobile to prevent pull-to-refresh and layout shifting
+    const preventScroll = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => document.removeEventListener('touchmove', preventScroll);
+  }, []);
 
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
       setRoomCode(code);
       handleConnectToLobby(code);
+
+      // Initialize realtime broadcast channel
+      const channel = supabase.channel(`room-${code}`);
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+        }
+      });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [searchParams]);
 
@@ -34,8 +54,8 @@ function RemoteController() {
     setRemoteState('controller');
   };
 
-  // 🔥 YAHAN MASLA THA - Ab ye fast aur accurate hai
-  const sendCommand = async (command: string) => {
+  // 🔥 YAHAN MASLA THA - Ab broadcast delay-free aur zero drops ke sath chalega
+  const sendCommand = (command: string) => {
     if (remoteState !== 'controller') return;
     
     // Vibrate & button press effect
@@ -43,13 +63,14 @@ function RemoteController() {
     setActiveBtn(command);
     setTimeout(() => setActiveBtn(null), 150); // Visual UI reset only
     
-    // Database mein command aur current time bhej do (taake har click alag count ho)
-    await supabase.from('rooms').update({ 
-      last_command: command, 
-      updated_at: new Date().toISOString() 
-    }).eq('room_code', roomCode);
-    
-    // NOTE: Ab hum command ko 'null' nahi kar rahe taake desktop se miss na ho
+    // Broadcast message fast and without DB overhead
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'command',
+        payload: { command }
+      });
+    }
   };
 
   if (remoteState === 'connecting') {
@@ -75,7 +96,7 @@ function RemoteController() {
 
   // 📱 PERFECT MOBILE UI LOGIC
   return (
-    <main className="fixed inset-0 bg-[#e2e2e7] flex flex-row items-center justify-between px-4 sm:px-10 touch-none select-none overflow-hidden font-sans">
+    <main className="fixed inset-0 w-[100dvw] h-[100dvh] bg-[#e2e2e7] flex flex-row items-center justify-between px-4 sm:px-10 touch-none select-none overflow-hidden font-sans overscroll-none">
       
       {/* LEFT: D-PAD */}
       <div className="relative w-40 h-40 sm:w-48 sm:h-48 flex-shrink-0">

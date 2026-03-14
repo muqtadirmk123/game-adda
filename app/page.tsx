@@ -23,9 +23,55 @@ export default function Home() {
   
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
+
+  // Synthesize sounds with Web Audio API so you don't need MP3 files
+  const initAudio = () => {
+    if (!audioCtxRef.current) {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        audioCtxRef.current = ctx;
+        if (ctx.state === 'suspended') ctx.resume();
+      }
+    } else if (audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
+  const playSound = (type: 'move' | 'select') => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'move') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+      } else if (type === 'select') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.setValueAtTime(800, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      }
+    } catch (e) {
+      console.error("Audio error", e);
+    }
+  };
 
   useEffect(() => {
     async function init() {
@@ -45,18 +91,16 @@ export default function Home() {
       await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
 
       const channel = supabase.channel(`room-${code}`)
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${code}` }, 
-        (payload: any) => {
-          const status = payload.new.status;
-          const cmd = payload.new.last_command;
+        .on('broadcast', { event: 'command' }, (payload) => {
+          const cmd = payload.payload.command;
 
-          if (status === 'playing' && viewStateRef.current === 'pairing') {
-            setViewState('splash');
-            setTimeout(() => setViewState('dashboard'), 3000);
-          }
+          if (viewStateRef.current === 'dashboard') {
+             if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') {
+                 playSound('select');
+             } else {
+                 playSound('move');
+             }
 
-          // 🔥 Yahan har update pakri jayegi chahe command same ho kyunke updated_at change hua hai
-          if (cmd && viewStateRef.current === 'dashboard') {
              setSelectedIndex((prev) => {
                const list = gamesRef.current;
                const total = list.length;
@@ -78,6 +122,16 @@ export default function Home() {
                }
                return prev;
              });
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${code}` }, 
+        (payload: any) => {
+          const status = payload.new.status;
+
+          if (status === 'playing' && viewStateRef.current === 'pairing') {
+            playSound('select');
+            setViewState('splash');
+            setTimeout(() => setViewState('dashboard'), 3000);
           }
         }).subscribe();
 
@@ -224,7 +278,10 @@ export default function Home() {
           Use your phone as a controller and dive into the arcade.
         </p>
         <button 
-          onClick={() => setViewState('pairing')}
+          onClick={() => {
+            initAudio();
+            setViewState('pairing');
+          }}
           className="bg-[#1ed760] text-black px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(30,215,96,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10"
         >
           Start playing now
