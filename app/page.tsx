@@ -1,36 +1,32 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
-interface Game { id: number; title: string; thumbnail_url: string; category: string; }
+interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; }
 interface Player { name: string; lastSeen: number; }
 
-function MainApp() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard'>('home');
+export default function Home() {
+  // States: Added 'playing' state to render game without leaving the page
+  const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard' | 'playing'>('home');
   const [games, setGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [categories, setCategories] = useState<string[]>(['All']);
   const [activeCategory, setActiveCategory] = useState('All');
   const [roomCode, setRoomCode] = useState<string>('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [systemError, setSystemError] = useState<string | null>(null);
-  const [user, setUser] = useState<any>(null);
-  
-  // 👥 Multiplayer State
   const [players, setPlayers] = useState<Player[]>([]);
+  const [user, setUser] = useState<any>(null);
   
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
-  const roomCodeRef = useRef('');
   const playersRef = useRef(players);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const isMutedRef = useRef(false);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
@@ -48,31 +44,31 @@ function MainApp() {
     }
   };
 
-  // 🔌 1-Minute Auto Disconnect Timeout Checker
+  // 🔌 15-Second FAST Auto Disconnect
   useEffect(() => {
     const timer = setInterval(() => {
-       if (viewStateRef.current === 'dashboard' || viewStateRef.current === 'pairing') {
+       if (viewStateRef.current === 'dashboard' || viewStateRef.current === 'pairing' || viewStateRef.current === 'playing') {
           const now = Date.now();
-          const activePlayers = playersRef.current.filter(p => now - p.lastSeen < 60000); // 60 seconds
+          const activePlayers = playersRef.current.filter(p => now - p.lastSeen < 15000); // 15 seconds timeout
           
           if (activePlayers.length === 0 && playersRef.current.length > 0) {
-             // Sab disconnect ho gaye, portal band karo!
              exitFullScreen();
              setViewState('home');
              setPlayers([]);
+             setActiveGame(null);
              sessionStorage.removeItem('ga_roomCode');
           } else if (activePlayers.length !== playersRef.current.length) {
              setPlayers(activePlayers);
           }
        }
-    }, 5000);
+    }, 3000); // Check every 3 seconds
     return () => clearInterval(timer);
   }, []);
 
   const playSound = (type: 'move' | 'select') => {
-    const ctx = audioCtxRef.current;
-    if (!ctx) return;
+    if (isMutedRef.current || !audioCtxRef.current) return;
     try {
+      const ctx = audioCtxRef.current;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -91,6 +87,15 @@ function MainApp() {
     } catch (e) {}
   };
 
+  const simulateKeyPress = (command: string) => {
+    const keyMap: any = { 'UP': 'ArrowUp', 'DOWN': 'ArrowDown', 'LEFT': 'ArrowLeft', 'RIGHT': 'ArrowRight', 'A': 'z', 'B': 'x', 'X': 'Enter', 'Y': 'Shift' };
+    const key = keyMap[command];
+    if (key) {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+      setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { key })), 100);
+    }
+  };
+
   useEffect(() => {
     async function init() {
       const { data } = await supabase.from('games').select('*');
@@ -102,22 +107,13 @@ function MainApp() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       
-      const stateFromURL = searchParams.get('state');
-      const roomFromURL = searchParams.get('room');
-
-      let code = roomFromURL || sessionStorage.getItem('ga_roomCode');
+      let code = sessionStorage.getItem('ga_roomCode');
       if (!code) {
         code = Math.floor(100000 + Math.random() * 900000).toString();
         sessionStorage.setItem('ga_roomCode', code);
         await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
       }
       setRoomCode(code);
-      roomCodeRef.current = code;
-
-      if (stateFromURL === 'dashboard') {
-        setViewState('dashboard');
-        enterFullScreen();
-      }
 
       const channel = supabase.channel(`room-${code}`)
         .on('broadcast', { event: 'join' }, (payload) => {
@@ -147,9 +143,36 @@ function MainApp() {
           const cmd = payload.payload.command;
           const name = payload.payload.playerName || 'Player';
           
-          // Update ping on command
+          // Update ping
           setPlayers(prev => prev.map(p => p.name === name ? { ...p, lastSeen: Date.now() } : p));
 
+          // GLOBAL COMMANDS
+          if (cmd === 'MUTE') {
+             isMutedRef.current = !isMutedRef.current;
+             return;
+          }
+          if (cmd === 'DISCONNECT') {
+             exitFullScreen();
+             setViewState('home');
+             setPlayers([]);
+             setActiveGame(null);
+             sessionStorage.removeItem('ga_roomCode');
+             return;
+          }
+
+          // PLAYING STATE COMMANDS
+          if (viewStateRef.current === 'playing') {
+             if (cmd === 'HOME') {
+               playSound('select');
+               setViewState('dashboard');
+               setActiveGame(null);
+             } else {
+               simulateKeyPress(cmd);
+             }
+             return;
+          }
+
+          // DASHBOARD COMMANDS
           if (viewStateRef.current === 'dashboard') {
              if (cmd === 'SELECT' || cmd === 'A' || cmd === 'B' || cmd === 'X' || cmd === 'Y') playSound('select');
              else if (cmd !== 'HOME') playSound('move');
@@ -166,8 +189,9 @@ function MainApp() {
                
                if (cmd === 'SELECT') {
                  const selectedGame = list[prev];
-                 if (selectedGame && selectedGame.id) {
-                   router.push(`/game/${selectedGame.id}?room=${roomCodeRef.current}`);
+                 if (selectedGame && selectedGame.iframe_url) {
+                   setActiveGame(selectedGame);
+                   setViewState('playing');
                  } else {
                    setSystemError("GAME NOT AVAILABLE");
                    setTimeout(() => setSystemError(null), 3000);
@@ -181,7 +205,7 @@ function MainApp() {
       return () => { supabase.removeChannel(channel); };
     }
     init();
-  }, [router, searchParams]);
+  }, []);
 
   const handleFilter = (category: string) => {
     setActiveCategory(category);
@@ -198,6 +222,23 @@ function MainApp() {
     );
   };
 
+  // -------------------------
+  // PLAYING STATE (FULLSCREEN GAME)
+  // -------------------------
+  if (viewState === 'playing' && activeGame) {
+    return (
+      <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
+        <iframe src={activeGame.iframe_url} className="w-full h-full border-none outline-none" allowFullScreen />
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-white/70 text-[10px] font-black tracking-[4px] uppercase border border-white/10 pointer-events-none shadow-2xl">
+          Press HOME on mobile to exit
+        </div>
+      </main>
+    );
+  }
+
+  // -------------------------
+  // SPLASH SCREEN
+  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden">
@@ -214,13 +255,14 @@ function MainApp() {
     );
   }
 
+  // -------------------------
+  // PAIRING SCREEN
+  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen flex bg-[#050511] font-sans">
-        {/* LIVE PLAYERS LOBBY */}
         <div className="flex-1 bg-[#1875F0] flex flex-col items-center justify-center p-12 text-white relative overflow-y-auto">
            <h2 className="text-4xl font-black mb-12 capitalize drop-shadow-md">Players</h2>
-           
            {players.length === 0 ? (
              <div className="flex flex-col items-center opacity-70">
                <div className="w-24 h-24 rounded-full border-4 border-dashed border-white flex items-center justify-center animate-spin-slow">
@@ -254,13 +296,16 @@ function MainApp() {
     );
   }
 
+  // -------------------------
+  // CONSOLE DASHBOARD
+  // -------------------------
   if (viewState === 'dashboard') {
-    const activeGame = filteredGames[selectedIndex];
+    const highlightedGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
         <div className="absolute inset-0 z-0">
-           <img src={activeGame?.thumbnail_url} className="w-full h-full object-cover opacity-60 transition-all duration-500 scale-105 blur-md" />
+           <img src={highlightedGame?.thumbnail_url} className="w-full h-full object-cover opacity-60 transition-all duration-500 scale-105 blur-md" />
            <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-[#050511]/30"></div>
         </div>
 
@@ -281,7 +326,7 @@ function MainApp() {
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
-              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer" title="Exit Console">
+              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
               </button>
            </div>
@@ -290,9 +335,9 @@ function MainApp() {
         <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-10">
            <div className="max-w-2xl mb-6">
               <h4 className="text-cyan-400 text-sm font-bold tracking-widest uppercase mb-2">Featured Game</h4>
-              <h1 className="text-6xl font-black text-white mb-6 leading-tight drop-shadow-lg">{activeGame?.title || 'Unknown Game'}</h1>
+              <h1 className="text-6xl font-black text-white mb-6 leading-tight drop-shadow-lg">{highlightedGame?.title || 'Unknown Game'}</h1>
               <div className="flex items-center gap-4 mb-6 text-yellow-400 text-lg">
-                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| {activeGame?.category || 'Arcade'}</span>
+                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| {highlightedGame?.category || 'Arcade'}</span>
               </div>
               <button className="bg-[#1ed760] text-black px-10 py-4 rounded-xl font-black text-xl flex items-center gap-3 shadow-lg">
                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -315,6 +360,9 @@ function MainApp() {
     );
   }
 
+  // -------------------------
+  // LANDING PAGE
+  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
@@ -347,19 +395,11 @@ function MainApp() {
           {filteredGames.map((game) => (
             <div key={game.id} className="group relative bg-[#121220] rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]">
               <div className="relative h-52 overflow-hidden"><img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /><div className="absolute top-4 right-4"><span className="bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div></div>
-              <div className="p-6"><h3 className="text-xl font-bold mb-4 truncate group-hover:text-cyan-400 transition-colors">{game.title}</h3><Link href={`/game/${game.id}`} className="block w-full text-center py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all bg-gray-800/50 text-gray-400 group-hover:bg-gradient-to-r group-hover:from-cyan-500 group-hover:to-blue-600 group-hover:text-white">Play Game</Link></div>
+              <div className="p-6"><h3 className="text-xl font-bold mb-4 truncate group-hover:text-cyan-400 transition-colors">{game.title}</h3><div className="block w-full text-center py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all bg-gray-800/50 text-gray-400">Play Game</div></div>
             </div>
           ))}
         </div>
       </section>
     </main>
-  );
-}
-
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-[#050511]" />}>
-      <MainApp />
-    </Suspense>
   );
 }

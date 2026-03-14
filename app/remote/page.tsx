@@ -11,7 +11,6 @@ function RemoteController() {
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   
-  // 👤 Player Profile State
   const [playerName, setPlayerName] = useState('Player 1');
   const channelRef = useRef<any>(null);
 
@@ -24,10 +23,20 @@ function RemoteController() {
     return () => document.removeEventListener('touchmove', preventScroll);
   }, []);
 
+  // 🚪 INSTANT DISCONNECT JAB CHROME BAND HO
+  useEffect(() => {
+    const handleUnload = () => {
+      if (channelRef.current) {
+        channelRef.current.send({ type: 'broadcast', event: 'command', payload: { command: 'DISCONNECT' } });
+      }
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
+
   const handleNameChange = (newName: string) => {
     setPlayerName(newName);
     localStorage.setItem('ga_playerName', newName);
-    // Send update to desktop immediately
     if (channelRef.current) {
       channelRef.current.send({ type: 'broadcast', event: 'ping', payload: { playerName: newName } });
     }
@@ -43,7 +52,6 @@ function RemoteController() {
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;
-          // Join message bhej do
           channel.send({ type: 'broadcast', event: 'join', payload: { playerName } });
         }
       });
@@ -51,14 +59,14 @@ function RemoteController() {
     }
   }, [searchParams]);
 
-  // 🫀 HEARTBEAT SYSTEM: Har 10 sec mein desktop ko batao ke main zinda hoon
+  // 🫀 Fast Heartbeat every 5 seconds
   useEffect(() => {
     if (remoteState !== 'connecting') {
       const pingInterval = setInterval(() => {
         if (channelRef.current) {
           channelRef.current.send({ type: 'broadcast', event: 'ping', payload: { playerName } });
         }
-      }, 10000);
+      }, 5000);
       return () => clearInterval(pingInterval);
     }
   }, [remoteState, playerName]);
@@ -75,7 +83,6 @@ function RemoteController() {
     if (document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
-    // Start game trigger via broadcast is much faster
     if (channelRef.current) {
       channelRef.current.send({ type: 'broadcast', event: 'start_game', payload: {} });
     }
@@ -89,6 +96,8 @@ function RemoteController() {
     setActiveBtn(command);
     setTimeout(() => setActiveBtn(null), 150);
     
+    if (command === 'MUTE') setIsMuted(!isMuted);
+
     if (channelRef.current) {
       channelRef.current.send({ type: 'broadcast', event: 'command', payload: { command, playerName } });
     }
@@ -102,7 +111,6 @@ function RemoteController() {
     );
   }
 
-  // --- LOBBY SCREEN (With Name Edit) ---
   if (remoteState === 'lobby') {
     return (
       <main className="fixed inset-0 bg-[#1a1a1a] text-white flex flex-col items-center justify-between py-20 px-6 font-sans touch-none">
@@ -134,11 +142,9 @@ function RemoteController() {
     );
   }
 
-  // --- PORTRAIT CONTROLLER (With Name Edit) ---
   return (
     <main className="fixed inset-0 w-full h-[100dvh] bg-[#1c1c1c] text-white flex flex-col items-center justify-between py-10 px-4 touch-none select-none overflow-hidden font-sans">
       
-      {/* Top Profile Area */}
       <div className="flex flex-col items-center">
         <div className="text-[#00e676] mb-4">
            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
@@ -158,12 +164,11 @@ function RemoteController() {
         </div>
       </div>
 
-      {/* Action Row */}
       <div className="flex items-center justify-center gap-4 w-full px-4 border-y border-[#333] py-4 bg-[#111]/30">
         <button onTouchStart={() => sendCommand('SEARCH')} className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center active:bg-white/20 transition-colors border border-[#444]"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg></button>
         <button onTouchStart={() => sendCommand('HOME')} className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center active:bg-white/20 transition-colors border border-[#444]"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg></button>
         <button onTouchStart={() => sendCommand('FAV')} className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center active:bg-white/20 transition-colors border border-[#444]"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></button>
-        <button onTouchStart={() => { setIsMuted(!isMuted); sendCommand('MUTE'); }} className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center active:bg-white/20 transition-colors border border-[#444]">
+        <button onTouchStart={() => sendCommand('MUTE')} className="w-12 h-12 rounded-full bg-[#2a2a2a] flex items-center justify-center active:bg-white/20 transition-colors border border-[#444]">
           {isMuted ? (
              <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" /></svg>
           ) : (
@@ -172,7 +177,6 @@ function RemoteController() {
         </button>
       </div>
 
-      {/* Circular D-PAD */}
       <div className="relative w-64 h-64 bg-[#2a2a2a] rounded-full shadow-[0_0_30px_rgba(0,0,0,0.8)] border-[6px] border-[#222] my-4">
         <button onTouchStart={() => sendCommand('UP')} className={`absolute top-0 left-1/4 w-1/2 h-[35%] rounded-t-full flex items-start justify-center pt-4 transition-all ${activeBtn === 'UP' ? 'bg-white/10' : ''}`}><div className="w-0 h-0 border-l-[8px] border-r-[8px] border-b-[12px] border-l-transparent border-r-transparent border-b-gray-400"></div></button>
         <button onTouchStart={() => sendCommand('DOWN')} className={`absolute bottom-0 left-1/4 w-1/2 h-[35%] rounded-b-full flex items-end justify-center pb-4 transition-all ${activeBtn === 'DOWN' ? 'bg-white/10' : ''}`}><div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[12px] border-l-transparent border-r-transparent border-t-gray-400"></div></button>
@@ -183,7 +187,6 @@ function RemoteController() {
         </button>
       </div>
 
-      {/* Actions */}
       <div className="flex gap-4 mb-2">
          <button onTouchStart={() => sendCommand('Y')} className="w-14 h-14 bg-[#2a2a2a] text-yellow-500 rounded-full font-bold shadow-lg border-b-4 border-[#111] active:border-b-0 active:translate-y-1">Y</button>
          <button onTouchStart={() => sendCommand('X')} className="w-14 h-14 bg-[#2a2a2a] text-blue-500 rounded-full font-bold shadow-lg border-b-4 border-[#111] active:border-b-0 active:translate-y-1">X</button>
