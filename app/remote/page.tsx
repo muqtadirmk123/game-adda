@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 
-export default function Remote() {
+// --- Inner Component that uses searchParams ---
+function RemoteController() {
   const searchParams = useSearchParams();
   const [roomCode, setRoomCode] = useState('');
   const [isConnected, setIsConnected] = useState(false);
@@ -39,14 +40,11 @@ export default function Remote() {
     setLoading(false);
   };
 
-  // 2. Setup Controller (Landscape, Vibration, Fullscreen)
   const setupController = () => {
-    // Request Fullscreen
     if (document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen().catch(() => {});
     }
 
-    // Force Landscape (Works on many mobile browsers)
     if (typeof screen.orientation !== 'undefined' && (screen.orientation as any).lock) {
       (screen.orientation as any).lock('landscape').catch(() => {
         console.log("Landscape lock failed, user might need to rotate manually.");
@@ -57,7 +55,6 @@ export default function Remote() {
   const sendCommand = async (command: string) => {
     if (!isConnected) return;
 
-    // Haptic Feedback (Vibration)
     if (navigator.vibrate) {
       navigator.vibrate(50); 
     }
@@ -98,7 +95,7 @@ export default function Remote() {
   return (
     <main className="min-h-screen bg-[#050511] text-white flex items-center justify-between p-8 font-sans touch-none select-none overflow-hidden">
       
-      {/* 🕹️ Left Side: D-PAD */}
+      {/* Left Side: D-PAD */}
       <div className="relative w-48 h-48 grid grid-cols-3 grid-rows-3 gap-2">
         <div /> 
         <button onTouchStart={() => sendCommand('UP')} className="bg-gray-800/50 border-2 border-gray-700 rounded-2xl flex items-center justify-center text-2xl active:bg-cyan-500">▲</button>
@@ -113,13 +110,13 @@ export default function Remote() {
         <div />
       </div>
 
-      {/* 🎮 Center: Info */}
+      {/* Center: Info */}
       <div className="text-center">
         <div className="text-[10px] font-bold text-gray-600 tracking-[5px] uppercase mb-2">Connected</div>
         <div className="text-xs font-mono text-cyan-400 bg-cyan-400/10 px-4 py-1 rounded-full border border-cyan-400/20">{roomCode}</div>
       </div>
 
-      {/* 🔘 Right Side: ACTION BUTTONS */}
+      {/* Right Side: ACTION BUTTONS */}
       <div className="flex gap-6 items-center">
         <button 
           onTouchStart={() => sendCommand('B')} 
@@ -136,5 +133,18 @@ export default function Remote() {
       </div>
 
     </main>
+  );
+}
+
+// --- Main Export with Suspense Boundary ---
+export default function Remote() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#050511] flex items-center justify-center text-cyan-400 font-bold uppercase tracking-widest">
+        Initializing Game Controller...
+      </div>
+    }>
+      <RemoteController />
+    </Suspense>
   );
 }
