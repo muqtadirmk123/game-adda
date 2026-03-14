@@ -11,7 +11,6 @@ interface Game { id: number; title: string; thumbnail_url: string; category: str
 export default function Home() {
   const router = useRouter();
   
-  // States
   const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard'>('home');
   const [games, setGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
@@ -22,7 +21,6 @@ export default function Home() {
   const [systemError, setSystemError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
   
-  // Refs to prevent loops
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
 
@@ -31,7 +29,6 @@ export default function Home() {
 
   useEffect(() => {
     async function init() {
-      // Fetch Games
       const { data } = await supabase.from('games').select('*');
       if (data) {
         setGames(data);
@@ -40,29 +37,25 @@ export default function Home() {
         setCategories(['All', ...uniqueCategories]);
       }
 
-      // Check User
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       
-      // Setup Room
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       setRoomCode(code);
       await supabase.from('rooms').insert([{ room_code: code, status: 'waiting' }]);
 
-      // Realtime Listener
       const channel = supabase.channel(`room-${code}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `room_code=eq.${code}` }, 
         (payload: any) => {
           const status = payload.new.status;
           const cmd = payload.new.last_command;
 
-          // Transition to Splash -> Dashboard when mobile clicks 'Yes'
           if (status === 'playing' && viewStateRef.current === 'pairing') {
             setViewState('splash');
             setTimeout(() => setViewState('dashboard'), 3000);
           }
 
-          // Handle Controller Commands ONLY in Dashboard state
+          // 🔥 Yahan har update pakri jayegi chahe command same ho kyunke updated_at change hua hai
           if (cmd && viewStateRef.current === 'dashboard') {
              setSelectedIndex((prev) => {
                const list = gamesRef.current;
@@ -71,6 +64,9 @@ export default function Home() {
                
                if (cmd === 'RIGHT') return (prev + 1) % total;
                if (cmd === 'LEFT') return (prev - 1 + total) % total;
+               if (cmd === 'DOWN') return (prev + 4) < total ? prev + 4 : prev;
+               if (cmd === 'UP') return (prev - 4) >= 0 ? prev - 4 : prev;
+               
                if (cmd === 'SELECT') {
                  const selectedGame = list[prev];
                  if (selectedGame && selectedGame.id) {
@@ -90,14 +86,12 @@ export default function Home() {
     init();
   }, [router]);
 
-  // Handle Original Homepage Filtering
   const handleFilter = (category: string) => {
     setActiveCategory(category);
     if (category === 'All') setFilteredGames(games);
     else setFilteredGames(games.filter((game) => game.category === category));
   };
 
-  // --- ERROR TOAST ---
   const ErrorToast = () => {
     if (!systemError) return null;
     return (
@@ -107,9 +101,6 @@ export default function Home() {
     );
   };
 
-  // ==========================================
-  // STATE 1: SPLASH SCREEN (PS5 Style)
-  // ==========================================
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden">
@@ -126,9 +117,6 @@ export default function Home() {
     );
   }
 
-  // ==========================================
-  // STATE 2: PAIRING SCREEN (AirConsole Style)
-  // ==========================================
   if (viewState === 'pairing') {
     return (
       <main className="h-screen flex bg-[#050511] font-sans">
@@ -153,9 +141,6 @@ export default function Home() {
     );
   }
 
-  // ==========================================
-  // STATE 3: PREMIUM DASHBOARD (Controlled by Phone)
-  // ==========================================
   if (viewState === 'dashboard') {
     const activeGame = games[selectedIndex];
     return (
@@ -182,7 +167,7 @@ export default function Home() {
               <h4 className="text-white text-sm font-bold tracking-widest uppercase mb-2">Featured Game</h4>
               <h1 className="text-6xl font-black text-white mb-6 leading-tight drop-shadow-lg">{activeGame?.title || 'Unknown Game'}</h1>
               <div className="flex items-center gap-4 mb-6 text-yellow-400 text-lg">
-                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| {activeGame?.category || 'Arcade'}</span>
+                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| Arcade</span>
               </div>
               <button className="bg-white text-black px-10 py-4 rounded-xl font-black text-xl flex items-center gap-3">
                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
@@ -208,12 +193,9 @@ export default function Home() {
     );
   }
 
-  // ==========================================
-  // STATE 0: YOUR ORIGINAL HOMEPAGE
-  // ==========================================
+  // --- ORIGINAL WEBSITE ---
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
-      {/* 🌟 Original Navbar */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="text-3xl font-extrabold tracking-tighter">
@@ -233,7 +215,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* 🚀 Original Hero Section + NEW BUTTON */}
       <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
           Play Instantly. <br />
@@ -242,8 +223,6 @@ export default function Home() {
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">
           Use your phone as a controller and dive into the arcade.
         </p>
-
-        {/* 🟢 THE TRIGGER BUTTON */}
         <button 
           onClick={() => setViewState('pairing')}
           className="bg-[#1ed760] text-black px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(30,215,96,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10"
@@ -252,26 +231,17 @@ export default function Home() {
         </button>
       </section>
 
-      {/* 🎮 Original Game Grid & Filters */}
       <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10 pt-4">
         <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
           {categories.map((category) => (
-            <button 
-              key={category} 
-              onClick={() => handleFilter(category)} 
-              className={`px-6 py-2 rounded-full font-bold text-sm uppercase transition-all border ${activeCategory === category ? 'bg-cyan-500 border-transparent text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'bg-[#121220] border-gray-700 text-gray-400 hover:border-cyan-500'}`}
-            >
+            <button key={category} onClick={() => handleFilter(category)} className={`px-6 py-2 rounded-full font-bold text-sm uppercase transition-all border ${activeCategory === category ? 'bg-cyan-500 border-transparent text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'bg-[#121220] border-gray-700 text-gray-400 hover:border-cyan-500'}`}>
               {category}
             </button>
           ))}
         </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {filteredGames.map((game) => (
-            <div 
-              key={game.id} 
-              className="group relative bg-[#121220] rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]"
-            >
+            <div key={game.id} className="group relative bg-[#121220] rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]">
               <div className="relative h-52 overflow-hidden">
                 <img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute top-4 right-4"><span className="bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div>
