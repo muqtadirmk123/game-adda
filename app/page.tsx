@@ -71,7 +71,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 PREMIUM CINEMATIC SOUND ENGINE 🔥
+  // 🔥 PREMIUM CINEMATIC SOUND ENGINE (WITH ORIGINAL JOIN SOUND) 🔥
   const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
@@ -113,18 +113,18 @@ export default function Home() {
         osc.start(); osc.stop(now + 0.15);
       }
       else if (type === 'join') {
-        // 🔥 Wapas Purana wala Crisp Digital Pop/Chime!
+        // 🔥 Original Crisp Digital Pop/Chime!
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine'; 
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.start(); osc.stop(ctx.currentTime + 0.3);
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.start(now); osc.stop(now + 0.3);
       }
       else if (type === 'startup') {
         // 🔥 THE BRAND IMPACT: Heavy Sub-Bass Hit + Sweeping Reverb Chord
@@ -484,6 +484,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // CONSOLE DASHBOARD
+  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -545,6 +548,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // LANDING PAGE
+  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
