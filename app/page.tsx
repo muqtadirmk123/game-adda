@@ -31,15 +31,14 @@ export default function Home() {
   useEffect(() => { gamesRef.current = games; }, [games]);
   useEffect(() => { playersRef.current = players; }, [players]);
 
-  // 🔥 FULLSCREEN FUNCTION
   const enterFullScreen = () => {
     const elem = document.documentElement;
     if (!document.fullscreenElement) {
       if (elem.requestFullscreen) {
         elem.requestFullscreen().catch(() => console.log("Fullscreen blocked"));
-      } else if ((elem as any).webkitRequestFullscreen) { /* Safari */
+      } else if ((elem as any).webkitRequestFullscreen) {
         (elem as any).webkitRequestFullscreen();
-      } else if ((elem as any).msRequestFullscreen) { /* IE11 */
+      } else if ((elem as any).msRequestFullscreen) {
         (elem as any).msRequestFullscreen();
       }
     }
@@ -245,8 +244,9 @@ export default function Home() {
   // -------------------------
   if (viewState === 'splash') {
     return (
-      <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden">
-        <div className="flex flex-col items-center animate-in fade-in zoom-in duration-1000">
+      <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
+        <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
           <div className="text-6xl font-black tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -260,45 +260,89 @@ export default function Home() {
   }
 
   // -------------------------
-  // PAIRING SCREEN
+  // 🔥 MODERN 2026 PAIRING SCREEN 🔥
   // -------------------------
   if (viewState === 'pairing') {
     return (
-      <main className="h-screen flex bg-[#050511] font-sans">
-        <div className="flex-1 bg-[#1875F0] flex flex-col items-center justify-center p-12 text-white relative overflow-y-auto">
-           <h2 className="text-4xl font-black mb-12 capitalize drop-shadow-md">Players</h2>
-           {players.length === 0 ? (
-             <div className="flex flex-col items-center opacity-70">
-               <div className="w-24 h-24 rounded-full border-4 border-dashed border-white flex items-center justify-center animate-spin-slow">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+      <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
+        {/* Abstract Animated Background */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-fuchsia-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
+
+        {/* Central Glassmorphism Container */}
+        <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
+          
+          {/* Left Side: The Key (QR Code) */}
+          <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
+            <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-2xl font-extrabold tracking-tighter">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+            </div>
+            
+            <div className="mt-8 lg:mt-0">
+              <h2 className="text-5xl font-black text-white mb-4 tracking-tight">Link Device</h2>
+              <p className="text-gray-400 text-lg mb-10">Scan the visual code or navigate to <span className="text-cyan-400 font-bold">gameadda.com</span> on your phone.</p>
+              
+              <div className="flex flex-col xl:flex-row gap-8 items-start xl:items-center">
+                <div className="p-4 bg-white rounded-[2rem] shadow-[0_0_40px_rgba(6,182,212,0.2)] hover:scale-105 transition-transform duration-500">
+                  <QRCodeSVG value={`${window.location.origin}/remote?code=${roomCode}&auto=true`} size={160} />
+                </div>
+                <div className="flex flex-col gap-3">
+                  <span className="text-xs text-gray-500 font-bold uppercase tracking-[4px]">Digital Key</span>
+                  <div className="bg-black/40 border border-white/10 px-8 py-5 rounded-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <span className="relative z-10 text-cyan-400 text-5xl font-mono font-black tracking-[10px]">{roomCode}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side: Player Lounge */}
+          <div className="flex-1 p-12 lg:p-16 bg-gradient-to-br from-white/[0.01] to-black/40 flex flex-col relative">
+             <div className="flex justify-between items-center mb-12">
+               <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                 <span className="w-2.5 h-2.5 bg-[#1ed760] rounded-full animate-pulse shadow-[0_0_10px_rgba(30,215,96,0.8)]"></span>
+                 Player Lounge
+               </h3>
+               <span className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold text-gray-300 tracking-widest uppercase">
+                 {players.length} Connected
+               </span>
+             </div>
+
+             {players.length === 0 ? (
+               <div className="flex-1 flex flex-col items-center justify-center opacity-70">
+                  {/* Modern Radar Animation */}
+                  <div className="relative w-32 h-32 flex items-center justify-center mb-8">
+                     <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-ping duration-1000"></div>
+                     <div className="absolute inset-4 border-2 border-cyan-500/40 rounded-full animate-ping duration-1000 delay-150"></div>
+                     <div className="absolute inset-8 border border-fuchsia-500/30 rounded-full animate-ping duration-1000 delay-300"></div>
+                     <svg className="w-10 h-10 text-cyan-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" /></svg>
+                  </div>
+                  <p className="text-gray-400 font-bold tracking-[3px] uppercase text-xs">Awaiting challengers...</p>
                </div>
-               <p className="mt-6 font-bold tracking-widest">Waiting for players...</p>
-             </div>
-           ) : (
-             <div className="flex flex-wrap justify-center gap-8">
-               {players.map((p, i) => (
-                 <div key={i} className="flex flex-col items-center animate-in zoom-in">
-                   <div className="w-24 h-24 bg-[#42a82a] border-4 border-white rounded-full flex items-center justify-center text-4xl font-black uppercase shadow-2xl">{p.name.charAt(0)}</div>
-                   <p className="mt-3 font-bold uppercase tracking-widest text-sm">{p.name}</p>
-                 </div>
-               ))}
-             </div>
-           )}
-           <p className="absolute bottom-10 font-bold tracking-widest text-sm opacity-80">Phones + Screen = Console</p>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-12 bg-[#222]">
-          <h3 className="text-4xl font-black text-white mb-4">Connect your phones</h3>
-          <p className="text-gray-400 mb-8 text-center text-lg">Open <span className="text-[#1ed760] font-bold">gameadda.com</span> on your phone<br/>and enter the code below:</p>
-          <div className="border border-white/20 bg-black/50 px-10 py-4 rounded-2xl mb-10">
-            <span className="text-[#1ed760] text-5xl font-mono font-black tracking-[10px]">{roomCode}</span>
+             ) : (
+               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2 scrollbar-hide">
+                 {players.map((p, i) => (
+                   <div key={i} className="bg-black/20 border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/5 transition-colors">
+                     <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black shadow-inner uppercase">
+                       {p.name.charAt(0)}
+                     </div>
+                     <div className="flex flex-col">
+                       <span className="text-white font-bold text-lg">{p.name}</span>
+                       <span className="text-[#1ed760] text-[10px] font-black uppercase tracking-[2px]">Ready</span>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             )}
+
+             {/* Exit Button */}
+             <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-8 right-8 lg:top-12 lg:right-12 bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-2xl text-gray-400 hover:text-white transition-all" title="Cancel Pairing">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+             </button>
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-2xl">
-            <QRCodeSVG value={`${window.location.origin}/remote?code=${roomCode}&auto=true`} size={200} />
-          </div>
-          {/* EXPLICIT EXIT BUTTON JUST IN CASE */}
-          <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 border border-white/20 p-2.5 rounded-xl text-white transition-colors cursor-pointer" title="Exit Pairing">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-          </button>
+
         </div>
       </main>
     );
@@ -334,7 +378,7 @@ export default function Home() {
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
-              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer" title="Exit Console">
+              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
               </button>
            </div>
@@ -391,8 +435,6 @@ export default function Home() {
       <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">Use your phone as a controller and dive into the arcade.</p>
-        
-        {/* 🔥 YAHAN PAR FULLSCREEN TRIGGER HOGA 🔥 */}
         <button 
           onClick={() => { 
             enterFullScreen(); 
@@ -406,7 +448,6 @@ export default function Home() {
         >
           Start playing now
         </button>
-        
       </section>
       <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10 pt-4">
         <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
