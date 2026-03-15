@@ -71,7 +71,8 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  const playSound = (type: 'move' | 'select') => {
+  // 🔥 VIP SYNTHESIZER SOUND ENGINE 🔥
+  const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
       const ctx = audioCtxRef.current;
@@ -79,16 +80,52 @@ export default function Home() {
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
+
       if (type === 'move') {
         osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.05);
         gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
         osc.start(); osc.stop(ctx.currentTime + 0.05);
-      } else {
+      } 
+      else if (type === 'select') {
         osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime);
         osc.frequency.setValueAtTime(800, ctx.currentTime + 0.05);
         gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
         osc.start(); osc.stop(ctx.currentTime + 0.15);
+      }
+      else if (type === 'join') {
+        // Crisp, happy digital chime when player connects
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
+      }
+      else if (type === 'startup') {
+        // Deep, PlayStation/Xbox style cinematic drone
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2); gain2.connect(ctx.destination);
+
+        // Low Bass Drone
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(55, ctx.currentTime); // Low A
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 1); // Fade in
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4); // Fade out slowly
+
+        // High Shimmering Chord
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(440, ctx.currentTime); // A4
+        osc2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 2.5); // Sweep up
+        gain2.gain.setValueAtTime(0, ctx.currentTime);
+        gain2.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.5);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3.5);
+
+        osc.start(); osc.stop(ctx.currentTime + 4);
+        osc2.start(); osc2.stop(ctx.currentTime + 4);
       }
     } catch (e) {}
   };
@@ -121,7 +158,6 @@ export default function Home() {
 
       const channel = supabase.channel(`room-${code}`)
         .on('broadcast', { event: 'join' }, (payload) => {
-           // 🔥 FIX: Track players by their unique deviceId instead of name
            const deviceId = payload.payload.deviceId || `anon_${Math.random()}`;
            const name = payload.payload.playerName || 'Player';
            setPlayers(prev => {
@@ -129,6 +165,8 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
+              // 🔥 Naya player aya hai, Join Sound bajao!
+              playSound('join');
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
@@ -140,14 +178,17 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
+              // Agar disconnect hokar wapas aya hai
+              playSound('join');
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
         .on('broadcast', { event: 'start_game' }, () => {
            if (viewStateRef.current === 'pairing') {
-             playSound('select');
+             // 🔥 Console Startup Sound bajao!
+             playSound('startup');
              setViewState('splash');
-             setTimeout(() => setViewState('dashboard'), 3000);
+             setTimeout(() => setViewState('dashboard'), 3500); // Thora time barhaya taake startup sound poora mehsoos ho
            }
         })
         .on('broadcast', { event: 'command' }, (payload) => {
@@ -230,9 +271,6 @@ export default function Home() {
     );
   };
 
-  // -------------------------
-  // PLAYING STATE (FULLSCREEN GAME)
-  // -------------------------
   if (viewState === 'playing' && activeGame) {
     return (
       <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
@@ -249,15 +287,11 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // SPLASH SCREEN
-  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
         <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
-          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-6xl font-extrabold tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -270,9 +304,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // PAIRING SCREEN
-  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
@@ -282,7 +313,6 @@ export default function Home() {
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
-            {/* 🔥 Uniform Logo Fixed */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -354,9 +384,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // CONSOLE DASHBOARD
-  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -368,7 +395,6 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           {/* 🔥 Uniform Logo Fixed */}
            <div className="text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -419,14 +445,10 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // LANDING PAGE
-  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-3xl font-extrabold tracking-tighter">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
