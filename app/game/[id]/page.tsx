@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// 🔥 Added controller_type to the interface
 interface Game {
   id: number;
   title: string;
   iframe_url: string;
+  controller_type?: string; 
 }
 
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,26 +19,49 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
   
   const roomCode = searchParams.get('room');
   const [game, setGame] = useState<Game | null>(null);
+  const channelRef = useRef<any>(null); // 🔥 Reference to send broadcast signals
 
   useEffect(() => {
     async function fetchGame() {
       const { data } = await supabase.from('games').select('*').eq('id', resolvedParams.id).single();
-      if (data) setGame(data);
+      if (data) {
+        setGame(data);
+        
+        // 🔥 NEXT-GEN: Tell mobile to switch to this game's specific controller
+        if (channelRef.current) {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'set_controller',
+            payload: { controller_type: data.controller_type || 'default' }
+          });
+        }
+      }
     }
-    fetchGame();
 
     if (roomCode) {
       const channel = supabase.channel(`room-${roomCode}`)
         .on('broadcast', { event: 'command' }, (payload) => {
           const cmd = payload.payload.command;
           
-          // 🔥 Fix: Wapas Gaming Portal (Dashboard) par jao, Landing page par nahi
           if (cmd === 'HOME') {
+            // 🔥 Reset mobile controller to default before leaving the game
+            channel.send({ 
+              type: 'broadcast', 
+              event: 'set_controller', 
+              payload: { controller_type: 'default' } 
+            });
             router.push(`/?state=dashboard&room=${roomCode}`);
           } else {
             simulateKeyPress(cmd);
           }
-        }).subscribe();
+        });
+      
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+          fetchGame(); // Game fetch tabhi karo jab channel ready ho
+        }
+      });
 
       return () => { supabase.removeChannel(channel); };
     }
@@ -64,7 +89,7 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
         allowFullScreen 
       />
       <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md px-6 py-2 rounded-full text-white/70 text-[10px] font-black tracking-[4px] uppercase border border-white/10 pointer-events-none shadow-2xl">
-        Press HOME on mobile to exit
+        Playing: {game.title} | Press HOME on mobile to exit
       </div>
     </main>
   );
