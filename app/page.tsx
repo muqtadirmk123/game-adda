@@ -6,7 +6,6 @@ import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
 interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; }
-// 🔥 Added deviceId to ensure unique players!
 interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
@@ -71,90 +70,169 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 PREMIUM CINEMATIC SOUND ENGINE 🔥
+  // 🔥 THE ULTIMATE 2026 CINEMATIC BRAND SOUND ENGINE 🔥
   const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
       const ctx = audioCtxRef.current;
+      const now = ctx.currentTime;
       
+      // Helper function for heavy Reverb/Echo (Convolver)
+      const createReverb = (decay: number, duration: number) => {
+        const length = ctx.sampleRate * duration;
+        const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+        const left = impulse.getChannelData(0);
+        const right = impulse.getChannelData(1);
+        for (let i = 0; i < length; i++) {
+          const n = i === 0 ? 1 : Math.random() * 2 - 1;
+          left[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+          right[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+        }
+        const convolver = ctx.createConvolver();
+        convolver.buffer = impulse;
+        return convolver;
+      };
+
       if (type === 'move') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
-        osc.start(); osc.stop(ctx.currentTime + 0.05);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+        gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        osc.start(); osc.stop(now + 0.05);
       } 
       else if (type === 'select') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime);
-        osc.frequency.setValueAtTime(800, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-        osc.start(); osc.stop(ctx.currentTime + 0.15);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(800, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.start(); osc.stop(now + 0.15);
       }
       else if (type === 'join') {
-        // Modern Premium Device Pair Chime (Fast Arpeggio)
-        const notes = [523.25, 659.25, 783.99, 987.77]; // C5, E5, G5, B5 (Major 7th)
-        notes.forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          const startTime = ctx.currentTime + (i * 0.06);
-          gain.gain.setValueAtTime(0, startTime);
-          gain.gain.linearRampToValueAtTime(0.1, startTime + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
-          osc.start(startTime);
-          osc.stop(startTime + 0.6);
-        });
+        // Sharp, Crisp UI "Pop" Sound (High-End Digital Feel)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1); gain1.connect(ctx.destination);
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(800, now);
+        osc1.frequency.exponentialRampToValueAtTime(1200, now + 0.05); // Swift upward sweep
+        
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Quick decay
+        
+        osc1.start(now);
+        osc1.stop(now + 0.2);
+
+        // Add a tiny bass thud to give it weight
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2); gain2.connect(ctx.destination);
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(150, now);
+        osc2.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+        gain2.gain.setValueAtTime(0.2, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc2.start(now); osc2.stop(now + 0.15);
       }
       else if (type === 'startup') {
-        // Deep Cinematic Console Startup (Bass Drop + Ethereal Swell)
+        // 🔥 THE BRAND IMPACT: Heavy Sub-Bass Hit + Sweeping Reverb Chord
+        
+        // Setup Master Gain with Compressor for punch
         const masterGain = ctx.createGain();
-        masterGain.connect(ctx.destination);
-        masterGain.gain.value = 0.4;
+        const compressor = ctx.createDynamicsCompressor();
+        const reverb = createReverb(2.0, 4.0); // 4 seconds of huge echo
+        
+        masterGain.connect(compressor);
+        compressor.connect(ctx.destination);
+        masterGain.connect(reverb);
+        reverb.connect(ctx.destination);
+        
+        masterGain.gain.value = 0.8;
 
-        // 1. The Sub-Bass Drop
-        const bassOsc = ctx.createOscillator();
-        const bassGain = ctx.createGain();
-        bassOsc.connect(bassGain); bassGain.connect(masterGain);
-        bassOsc.type = 'triangle';
-        bassOsc.frequency.setValueAtTime(110, ctx.currentTime); // A2
-        bassOsc.frequency.exponentialRampToValueAtTime(55, ctx.currentTime + 1.5); // Drop to A1
-        bassGain.gain.setValueAtTime(0, ctx.currentTime);
-        bassGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.2);
-        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4);
-        bassOsc.start(ctx.currentTime); bassOsc.stop(ctx.currentTime + 4.5);
+        // 1. The Sub-Bass Hit (The "THUD")
+        const subOsc = ctx.createOscillator();
+        const subGain = ctx.createGain();
+        subOsc.connect(subGain); subGain.connect(masterGain);
+        
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(100, now); // Start mid-low
+        subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.5); // Drop to deep sub 30Hz
+        
+        subGain.gain.setValueAtTime(0, now);
+        subGain.gain.linearRampToValueAtTime(1.0, now + 0.05); // Instant hit
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 3); // Slowly rumble out
+        
+        subOsc.start(now); subOsc.stop(now + 4);
 
-        // 2. The Lush Shimmering Chord
-        const chord = [220.00, 261.63, 329.63, 415.30]; // A3, C4, E4, G#4 (A minor 9)
+        // 2. The Sci-Fi Sweep (The "WHOOSH")
+        const sweepOsc = ctx.createOscillator();
+        const sweepGain = ctx.createGain();
+        sweepOsc.connect(sweepGain); sweepGain.connect(masterGain);
+        
+        sweepOsc.type = 'sawtooth';
+        sweepOsc.frequency.setValueAtTime(150, now);
+        sweepOsc.frequency.exponentialRampToValueAtTime(1200, now + 1.5); // Rising sci-fi tension
+        
+        // Filter the sweep so it's not harsh
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(500, now);
+        filter.frequency.exponentialRampToValueAtTime(3000, now + 1.5);
+        sweepGain.disconnect();
+        sweepGain.connect(filter); filter.connect(masterGain);
+
+        sweepGain.gain.setValueAtTime(0, now);
+        sweepGain.gain.linearRampToValueAtTime(0.15, now + 0.5);
+        sweepGain.gain.exponentialRampToValueAtTime(0.01, now + 3.5);
+        
+        sweepOsc.start(now); sweepOsc.stop(now + 4);
+
+        // 3. The Big Ethereal Chord (A minor add9)
+        const chord = [220.00, 329.63, 493.88, 587.33]; // A3, E4, B4, D5 (Rich, open chord)
         chord.forEach((freq, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain); gain.connect(masterGain);
-          osc.type = 'sine';
-          osc.frequency.value = freq + (Math.random() * 2 - 1); // Slight cinematic detune
-          gain.gain.setValueAtTime(0, ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.5 + (i * 0.2)); // Slow swell
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4.5);
-          osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 5);
+          
+          osc.type = 'sine'; // Pure tone
+          osc.frequency.value = freq;
+          
+          gain.gain.setValueAtTime(0, now);
+          // Slow, grand fade in and out
+          gain.gain.linearRampToValueAtTime(0.15, now + 0.8 + (i * 0.1)); 
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
+          
+          osc.start(now); osc.stop(now + 5);
         });
 
-        // 3. High Ethereal Sweep
-        const sweepOsc = ctx.createOscillator();
-        const sweepGain = ctx.createGain();
-        sweepOsc.connect(sweepGain); sweepGain.connect(masterGain);
-        sweepOsc.type = 'sine';
-        sweepOsc.frequency.setValueAtTime(880, ctx.currentTime + 0.5);
-        sweepOsc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 2.5);
-        sweepGain.gain.setValueAtTime(0, ctx.currentTime + 0.5);
-        sweepGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1.5);
-        sweepGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4);
-        sweepOsc.start(ctx.currentTime + 0.5); sweepOsc.stop(ctx.currentTime + 4.5);
+        // 4. Subtle Digital Noise/Air
+        const bufferSize = ctx.sampleRate * 2.0; // 2 seconds of noise
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        const noiseSource = ctx.createBufferSource();
+        noiseSource.buffer = buffer;
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.value = 5000; // High hiss
+        const noiseGain = ctx.createGain();
+        
+        noiseSource.connect(noiseFilter);
+        noiseFilter.connect(noiseGain);
+        noiseGain.connect(masterGain);
+        
+        noiseGain.gain.setValueAtTime(0, now);
+        noiseGain.gain.linearRampToValueAtTime(0.05, now + 0.5); // Air rises
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2);
+        
+        noiseSource.start(now);
       }
     } catch (e) {}
   };
@@ -194,7 +272,7 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
-              playSound('join'); // 🔥 PREMIUM JOIN SOUND HERE
+              playSound('join'); 
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
@@ -206,15 +284,15 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
-              playSound('join'); // 🔥 PREMIUM JOIN SOUND RE-CONNECT
+              playSound('join'); 
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
         .on('broadcast', { event: 'start_game' }, () => {
            if (viewStateRef.current === 'pairing') {
-             playSound('startup'); // 🔥 CINEMATIC STARTUP SOUND HERE
+             playSound('startup'); 
              setViewState('splash');
-             setTimeout(() => setViewState('dashboard'), 3500); // 3.5 seconds to let the big sound play out
+             setTimeout(() => setViewState('dashboard'), 4000); // Wait 4 secs for cinematic sound
            }
         })
         .on('broadcast', { event: 'command' }, (payload) => {
@@ -324,7 +402,6 @@ export default function Home() {
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
         <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
-          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-6xl font-extrabold tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -349,7 +426,6 @@ export default function Home() {
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
-            {/* 🔥 Uniform Logo Fixed */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -421,9 +497,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // CONSOLE DASHBOARD
-  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -435,7 +508,6 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           {/* 🔥 Uniform Logo Fixed */}
            <div className="text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -486,14 +558,10 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // LANDING PAGE
-  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-3xl font-extrabold tracking-tighter">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
