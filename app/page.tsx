@@ -6,7 +6,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
 interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; }
-interface Player { name: string; lastSeen: number; }
+// 🔥 Added deviceId to ensure unique players!
+interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
   const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard' | 'playing'>('home');
@@ -120,18 +121,26 @@ export default function Home() {
 
       const channel = supabase.channel(`room-${code}`)
         .on('broadcast', { event: 'join' }, (payload) => {
+           // 🔥 FIX: Track players by their unique deviceId instead of name
+           const deviceId = payload.payload.deviceId || `anon_${Math.random()}`;
            const name = payload.payload.playerName || 'Player';
            setPlayers(prev => {
-              if (prev.find(p => p.name === name)) return prev;
-              return [...prev, { name, lastSeen: Date.now() }];
+              const existingPlayer = prev.find(p => p.id === deviceId);
+              if (existingPlayer) {
+                 return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
+              }
+              return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
         .on('broadcast', { event: 'ping' }, (payload) => {
+           const deviceId = payload.payload.deviceId || `anon_${Math.random()}`;
            const name = payload.payload.playerName || 'Player';
            setPlayers(prev => {
-              const exists = prev.find(p => p.name === name);
-              if (exists) return prev.map(p => p.name === name ? { ...p, lastSeen: Date.now() } : p);
-              return [...prev, { name, lastSeen: Date.now() }];
+              const existingPlayer = prev.find(p => p.id === deviceId);
+              if (existingPlayer) {
+                 return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
+              }
+              return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
         .on('broadcast', { event: 'start_game' }, () => {
@@ -143,9 +152,10 @@ export default function Home() {
         })
         .on('broadcast', { event: 'command' }, (payload) => {
           const cmd = payload.payload.command;
+          const deviceId = payload.payload.deviceId || `anon_${Math.random()}`;
           const name = payload.payload.playerName || 'Player';
           
-          setPlayers(prev => prev.map(p => p.name === name ? { ...p, lastSeen: Date.now() } : p));
+          setPlayers(prev => prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p));
 
           if (cmd === 'MUTE') {
              isMutedRef.current = !isMutedRef.current;
@@ -247,7 +257,8 @@ export default function Home() {
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
         <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
-          <div className="text-6xl font-black tracking-tighter mb-6">
+          {/* 🔥 Uniform Logo */}
+          <div className="text-6xl font-extrabold tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
           </div>
@@ -265,15 +276,13 @@ export default function Home() {
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
-        {/* Abstract Animated Background */}
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-cyan-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-fuchsia-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
 
-        {/* Central Glassmorphism Container */}
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           
-          {/* Left Side: The Key (QR Code) */}
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
+            {/* 🔥 Uniform Logo */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-2xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -298,7 +307,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Right Side: Player Lounge */}
           <div className="flex-1 p-12 lg:p-16 bg-gradient-to-br from-white/[0.01] to-black/40 flex flex-col relative">
              <div className="flex justify-between items-center mb-12">
                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
@@ -312,7 +320,6 @@ export default function Home() {
 
              {players.length === 0 ? (
                <div className="flex-1 flex flex-col items-center justify-center opacity-70">
-                  {/* Modern Radar Animation */}
                   <div className="relative w-32 h-32 flex items-center justify-center mb-8">
                      <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-ping duration-1000"></div>
                      <div className="absolute inset-4 border-2 border-cyan-500/40 rounded-full animate-ping duration-1000 delay-150"></div>
@@ -324,12 +331,12 @@ export default function Home() {
              ) : (
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2 scrollbar-hide">
                  {players.map((p, i) => (
-                   <div key={i} className="bg-black/20 border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/5 transition-colors">
+                   <div key={p.id} className="bg-black/20 border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/5 transition-colors">
                      <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black shadow-inner uppercase">
                        {p.name.charAt(0)}
                      </div>
                      <div className="flex flex-col">
-                       <span className="text-white font-bold text-lg">{p.name}</span>
+                       <span className="text-white font-bold text-lg truncate w-24">{p.name}</span>
                        <span className="text-[#1ed760] text-[10px] font-black uppercase tracking-[2px]">Ready</span>
                      </div>
                    </div>
@@ -337,7 +344,6 @@ export default function Home() {
                </div>
              )}
 
-             {/* Exit Button */}
              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-8 right-8 lg:top-12 lg:right-12 bg-white/5 hover:bg-white/10 border border-white/10 p-3 rounded-2xl text-gray-400 hover:text-white transition-all" title="Cancel Pairing">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
              </button>
@@ -362,19 +368,20 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="text-2xl font-extrabold tracking-tighter text-white flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-lg flex items-center justify-center text-black font-black">G</div>
-              <span>Game<span className="text-cyan-400">Adda</span></span>
+           {/* 🔥 Uniform Logo */}
+           <div className="text-3xl font-extrabold tracking-tighter">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
            </div>
            
            <div className="flex gap-4 items-center">
               {players.slice(0,2).map((p, i) => (
-                <div key={i} className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
+                <div key={p.id} className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
                    <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black uppercase">{p.name.charAt(0)}</span>
-                   <span className="tracking-widest uppercase text-sm">{p.name}</span>
+                   <span className="tracking-widest uppercase text-sm truncate max-w-[80px]">{p.name}</span>
                 </div>
               ))}
-              <div className="bg-black/80 border border-[#1ed760]/30 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3">
+              <div className="bg-black/80 border border-[#1ed760]/30 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_20px_rgba(30,215,96,0.1)]">
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
@@ -419,7 +426,11 @@ export default function Home() {
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-3xl font-extrabold tracking-tighter"><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span><span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span></div>
+          {/* 🔥 Uniform Logo */}
+          <div className="text-3xl font-extrabold tracking-tighter">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+          </div>
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
