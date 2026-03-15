@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
 interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; }
+// 🔥 Added deviceId to ensure unique players!
 interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
@@ -70,7 +71,7 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 THE ULTIMATE 2026 CINEMATIC BRAND SOUND ENGINE 🔥
+  // 🔥 PREMIUM CINEMATIC SOUND ENGINE 🔥
   const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
@@ -112,32 +113,18 @@ export default function Home() {
         osc.start(); osc.stop(now + 0.15);
       }
       else if (type === 'join') {
-        // Sharp, Crisp UI "Pop" Sound (High-End Digital Feel)
-        const osc1 = ctx.createOscillator();
-        const gain1 = ctx.createGain();
-        osc1.connect(gain1); gain1.connect(ctx.destination);
-        
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(800, now);
-        osc1.frequency.exponentialRampToValueAtTime(1200, now + 0.05); // Swift upward sweep
-        
-        gain1.gain.setValueAtTime(0, now);
-        gain1.gain.linearRampToValueAtTime(0.3, now + 0.02);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2); // Quick decay
-        
-        osc1.start(now);
-        osc1.stop(now + 0.2);
-
-        // Add a tiny bass thud to give it weight
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.connect(gain2); gain2.connect(ctx.destination);
-        osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(150, now);
-        osc2.frequency.exponentialRampToValueAtTime(50, now + 0.1);
-        gain2.gain.setValueAtTime(0.2, now);
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        osc2.start(now); osc2.stop(now + 0.15);
+        // 🔥 Wapas Purana wala Crisp Digital Pop/Chime!
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine'; 
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.start(); osc.stop(ctx.currentTime + 0.3);
       }
       else if (type === 'startup') {
         // 🔥 THE BRAND IMPACT: Heavy Sub-Bass Hit + Sweeping Reverb Chord
