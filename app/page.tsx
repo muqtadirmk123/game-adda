@@ -5,8 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
-interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; }
-// 🔥 Added deviceId to ensure unique players!
+// 🔥 Naye columns add kiye (video_url aur controller_type)
+interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; video_url?: string; controller_type?: string; }
 interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
@@ -27,6 +27,9 @@ export default function Home() {
   const playersRef = useRef(players);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const isMutedRef = useRef(false);
+  
+  // 🔥 Channel Ref add kiya taake Portal Mobile ko command bhej sake
+  const channelRef = useRef<any>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
@@ -71,14 +74,12 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 PREMIUM CINEMATIC SOUND ENGINE (WITH ORIGINAL JOIN SOUND) 🔥
   const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
       const ctx = audioCtxRef.current;
       const now = ctx.currentTime;
       
-      // Helper function for heavy Reverb/Echo (Convolver)
       const createReverb = (decay: number, duration: number) => {
         const length = ctx.sampleRate * duration;
         const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
@@ -113,112 +114,85 @@ export default function Home() {
         osc.start(); osc.stop(now + 0.15);
       }
       else if (type === 'join') {
-        // 🔥 Original Crisp Digital Pop/Chime!
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine'; 
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.setValueAtTime(659.25, now + 0.1);
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         osc.start(now); osc.stop(now + 0.3);
       }
       else if (type === 'startup') {
-        // 🔥 THE BRAND IMPACT: Heavy Sub-Bass Hit + Sweeping Reverb Chord
-        
-        // Setup Master Gain with Compressor for punch
         const masterGain = ctx.createGain();
         const compressor = ctx.createDynamicsCompressor();
-        const reverb = createReverb(2.0, 4.0); // 4 seconds of huge echo
-        
+        const reverb = createReverb(2.0, 4.0);
         masterGain.connect(compressor);
         compressor.connect(ctx.destination);
         masterGain.connect(reverb);
         reverb.connect(ctx.destination);
-        
         masterGain.gain.value = 0.8;
 
-        // 1. The Sub-Bass Hit (The "THUD")
         const subOsc = ctx.createOscillator();
         const subGain = ctx.createGain();
         subOsc.connect(subGain); subGain.connect(masterGain);
-        
         subOsc.type = 'sine';
-        subOsc.frequency.setValueAtTime(100, now); // Start mid-low
-        subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.5); // Drop to deep sub 30Hz
-        
+        subOsc.frequency.setValueAtTime(100, now);
+        subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.5);
         subGain.gain.setValueAtTime(0, now);
-        subGain.gain.linearRampToValueAtTime(1.0, now + 0.05); // Instant hit
-        subGain.gain.exponentialRampToValueAtTime(0.01, now + 3); // Slowly rumble out
-        
+        subGain.gain.linearRampToValueAtTime(1.0, now + 0.05);
+        subGain.gain.exponentialRampToValueAtTime(0.01, now + 3);
         subOsc.start(now); subOsc.stop(now + 4);
 
-        // 2. The Sci-Fi Sweep (The "WHOOSH")
         const sweepOsc = ctx.createOscillator();
         const sweepGain = ctx.createGain();
         sweepOsc.connect(sweepGain); sweepGain.connect(masterGain);
-        
         sweepOsc.type = 'sawtooth';
         sweepOsc.frequency.setValueAtTime(150, now);
-        sweepOsc.frequency.exponentialRampToValueAtTime(1200, now + 1.5); // Rising sci-fi tension
-        
-        // Filter the sweep so it's not harsh
+        sweepOsc.frequency.exponentialRampToValueAtTime(1200, now + 1.5);
         const filter = ctx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(500, now);
         filter.frequency.exponentialRampToValueAtTime(3000, now + 1.5);
         sweepGain.disconnect();
         sweepGain.connect(filter); filter.connect(masterGain);
-
         sweepGain.gain.setValueAtTime(0, now);
         sweepGain.gain.linearRampToValueAtTime(0.15, now + 0.5);
         sweepGain.gain.exponentialRampToValueAtTime(0.01, now + 3.5);
-        
         sweepOsc.start(now); sweepOsc.stop(now + 4);
 
-        // 3. The Big Ethereal Chord (A minor add9)
-        const chord = [220.00, 329.63, 493.88, 587.33]; // A3, E4, B4, D5 (Rich, open chord)
+        const chord = [220.00, 329.63, 493.88, 587.33];
         chord.forEach((freq, i) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain); gain.connect(masterGain);
-          
-          osc.type = 'sine'; // Pure tone
+          osc.type = 'sine';
           osc.frequency.value = freq;
-          
           gain.gain.setValueAtTime(0, now);
-          // Slow, grand fade in and out
           gain.gain.linearRampToValueAtTime(0.15, now + 0.8 + (i * 0.1)); 
           gain.gain.exponentialRampToValueAtTime(0.001, now + 4.5);
-          
           osc.start(now); osc.stop(now + 5);
         });
 
-        // 4. Subtle Digital Noise/Air
-        const bufferSize = ctx.sampleRate * 2.0; // 2 seconds of noise
+        const bufferSize = ctx.sampleRate * 2.0;
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
+        for (let i = 0; i < bufferSize; i++) { data[i] = Math.random() * 2 - 1; }
         const noiseSource = ctx.createBufferSource();
         noiseSource.buffer = buffer;
         const noiseFilter = ctx.createBiquadFilter();
         noiseFilter.type = 'bandpass';
-        noiseFilter.frequency.value = 5000; // High hiss
+        noiseFilter.frequency.value = 5000;
         const noiseGain = ctx.createGain();
-        
         noiseSource.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
         noiseGain.connect(masterGain);
-        
         noiseGain.gain.setValueAtTime(0, now);
-        noiseGain.gain.linearRampToValueAtTime(0.05, now + 0.5); // Air rises
+        noiseGain.gain.linearRampToValueAtTime(0.05, now + 0.5);
         noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2);
-        
         noiseSource.start(now);
       }
     } catch (e) {}
@@ -256,9 +230,7 @@ export default function Home() {
            const name = payload.payload.playerName || 'Player';
            setPlayers(prev => {
               const existingPlayer = prev.find(p => p.id === deviceId);
-              if (existingPlayer) {
-                 return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
-              }
+              if (existingPlayer) return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               playSound('join'); 
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
@@ -268,9 +240,7 @@ export default function Home() {
            const name = payload.payload.playerName || 'Player';
            setPlayers(prev => {
               const existingPlayer = prev.find(p => p.id === deviceId);
-              if (existingPlayer) {
-                 return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
-              }
+              if (existingPlayer) return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               playSound('join'); 
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
@@ -279,7 +249,7 @@ export default function Home() {
            if (viewStateRef.current === 'pairing') {
              playSound('startup'); 
              setViewState('splash');
-             setTimeout(() => setViewState('dashboard'), 4000); // Wait 4 secs for cinematic sound
+             setTimeout(() => setViewState('dashboard'), 4000);
            }
         })
         .on('broadcast', { event: 'command' }, (payload) => {
@@ -307,6 +277,10 @@ export default function Home() {
                playSound('select');
                setViewState('dashboard');
                setActiveGame(null);
+               // 🔥 Tell mobiles to go back to Default Controller
+               if (channelRef.current) {
+                 channelRef.current.send({ type: 'broadcast', event: 'set_controller', payload: { controller_type: 'default' } });
+               }
              } else {
                sendCommandToGame(cmd); 
              }
@@ -332,6 +306,14 @@ export default function Home() {
                  if (selectedGame && selectedGame.iframe_url) {
                    setActiveGame(selectedGame);
                    setViewState('playing');
+                   // 🔥 Tell mobiles to switch to THIS game's specific controller!
+                   if (channelRef.current) {
+                     channelRef.current.send({ 
+                        type: 'broadcast', 
+                        event: 'set_controller', 
+                        payload: { controller_type: selectedGame.controller_type || 'default' } 
+                     });
+                   }
                  } else {
                    setSystemError("GAME NOT AVAILABLE");
                    setTimeout(() => setSystemError(null), 3000);
@@ -340,7 +322,13 @@ export default function Home() {
                return prev;
              });
           }
-        }).subscribe();
+        });
+        
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel; // Save ref to send commands
+        }
+      });
 
       return () => { supabase.removeChannel(channel); };
     }
@@ -362,9 +350,6 @@ export default function Home() {
     );
   };
 
-  // -------------------------
-  // PLAYING STATE (FULLSCREEN GAME)
-  // -------------------------
   if (viewState === 'playing' && activeGame) {
     return (
       <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
@@ -381,9 +366,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // SPLASH SCREEN
-  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
@@ -401,9 +383,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // PAIRING SCREEN
-  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
@@ -484,16 +463,29 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // CONSOLE DASHBOARD
-  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
+        
+        {/* 🔥 NEW VIDEO PREVIEW FEATURE 🔥 */}
         <div className="absolute inset-0 z-0">
-           <img src={highlightedGame?.thumbnail_url} className="w-full h-full object-cover opacity-60 transition-all duration-500 scale-105 blur-md" />
+           {highlightedGame?.video_url ? (
+             <video 
+               src={highlightedGame.video_url} 
+               autoPlay 
+               loop 
+               muted 
+               playsInline 
+               className="w-full h-full object-cover opacity-50 transition-all duration-500 scale-105 blur-[2px]" 
+             />
+           ) : (
+             <img 
+               src={highlightedGame?.thumbnail_url} 
+               className="w-full h-full object-cover opacity-50 transition-all duration-500 scale-105 blur-md" 
+             />
+           )}
            <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-[#050511]/30"></div>
         </div>
 
@@ -548,9 +540,6 @@ export default function Home() {
     );
   }
 
-  // -------------------------
-  // LANDING PAGE
-  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
@@ -597,7 +586,10 @@ export default function Home() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {filteredGames.map((game) => (
             <div key={game.id} className="group relative bg-[#121220] rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]">
-              <div className="relative h-52 overflow-hidden"><img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /><div className="absolute top-4 right-4"><span className="bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div></div>
+              <div className="relative h-52 overflow-hidden">
+                <img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div className="absolute top-4 right-4"><span className="bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div>
+              </div>
               <div className="p-6"><h3 className="text-xl font-bold mb-4 truncate group-hover:text-cyan-400 transition-colors">{game.title}</h3><div className="block w-full text-center py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all bg-gray-800/50 text-gray-400">Play Game</div></div>
             </div>
           ))}

@@ -8,21 +8,22 @@ function RemoteController() {
   const searchParams = useSearchParams();
   const [roomCode, setRoomCode] = useState('');
   const [remoteState, setRemoteState] = useState<'connecting' | 'lobby' | 'controller'>('connecting');
+  
+  // 🔥 NAYA STATE: Desktop se pata chalega konsa UI load karna hai!
+  const [controllerType, setControllerType] = useState<string>('default'); 
+  
   const [activeBtn, setActiveBtn] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   
   const [playerName, setPlayerName] = useState('Player 1');
   const channelRef = useRef<any>(null);
   
-  // 🔥 YAHAN FIX KIYA HAI: Unique Device ID generate hogi
   const deviceIdRef = useRef<string>('');
 
   useEffect(() => {
-    // Session se Player Name uthao
     const savedName = localStorage.getItem('ga_playerName');
     if (savedName) setPlayerName(savedName);
 
-    // Session se Device ID uthao ya nayi banao
     let dId = localStorage.getItem('ga_deviceId');
     if (!dId) {
       dId = 'dev_' + Math.random().toString(36).substring(2, 15);
@@ -35,7 +36,6 @@ function RemoteController() {
     return () => document.removeEventListener('touchmove', preventScroll);
   }, []);
 
-  // 🚪 INSTANT DISCONNECT JAB CHROME BAND HO
   useEffect(() => {
     const handleUnload = () => {
       if (channelRef.current) {
@@ -68,11 +68,15 @@ function RemoteController() {
       setRoomCode(code);
       handleConnectToLobby(code);
 
-      const channel = supabase.channel(`room-${code}`);
+      const channel = supabase.channel(`room-${code}`)
+        // 🔥 NAYA EVENT: Desktop isay trigger karega controller badalne ke liye
+        .on('broadcast', { event: 'set_controller' }, (payload) => {
+          setControllerType(payload.payload.controller_type || 'default');
+        });
+
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;
-          // 🔥 Join bhejte waqt Device ID zaroor bhejo
           channel.send({ 
             type: 'broadcast', 
             event: 'join', 
@@ -84,7 +88,6 @@ function RemoteController() {
     }
   }, [searchParams, playerName]);
 
-  // 🫀 Fast Heartbeat every 5 seconds
   useEffect(() => {
     if (remoteState !== 'connecting') {
       const pingInterval = setInterval(() => {
@@ -179,6 +182,43 @@ function RemoteController() {
     );
   }
 
+  // 🔥 CUSTOM RACING CONTROLLER (Dynamic Layout)
+  if (controllerType === 'racing') {
+    return (
+      <main className="fixed inset-0 w-full h-[100dvh] bg-[#0a0a1a] text-white flex flex-col items-center justify-between p-6 touch-none select-none overflow-hidden font-sans">
+        <div className="w-full flex justify-between items-center bg-black/40 p-4 rounded-3xl border border-white/5">
+           <div className="text-cyan-400 font-black tracking-widest uppercase text-sm flex items-center gap-2">
+             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Racing Mode
+           </div>
+           <button onTouchStart={() => sendCommand('HOME')} className="px-6 py-2 bg-red-500/20 rounded-full text-red-500 font-bold border border-red-500/50 active:bg-red-500 active:text-white transition-all">
+             EXIT
+           </button>
+        </div>
+
+        {/* Steering Wheel Area (Left/Right) */}
+        <div className="w-full flex justify-between px-4 mt-10">
+          <button onTouchStart={() => sendCommand('LEFT')} className={`w-32 h-32 rounded-full border-[8px] flex items-center justify-center transition-all ${activeBtn === 'LEFT' ? 'bg-cyan-500 border-cyan-400 scale-95 shadow-[0_0_30px_rgba(6,182,212,0.6)]' : 'bg-black border-gray-800 shadow-xl'}`}>
+             <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <button onTouchStart={() => sendCommand('RIGHT')} className={`w-32 h-32 rounded-full border-[8px] flex items-center justify-center transition-all ${activeBtn === 'RIGHT' ? 'bg-cyan-500 border-cyan-400 scale-95 shadow-[0_0_30px_rgba(6,182,212,0.6)]' : 'bg-black border-gray-800 shadow-xl'}`}>
+             <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+
+        {/* Pedals Area (Gas/Brake) */}
+        <div className="w-full flex gap-4 mt-auto mb-4">
+          <button onTouchStart={() => sendCommand('DOWN')} className={`flex-1 h-32 rounded-[2rem] border-b-8 flex flex-col items-center justify-center transition-all ${activeBtn === 'DOWN' ? 'bg-red-600 border-red-800 translate-y-2' : 'bg-red-500/20 border-red-500 text-red-500'}`}>
+             <span className="font-black text-2xl tracking-widest">BRAKE</span>
+          </button>
+          <button onTouchStart={() => sendCommand('UP')} className={`flex-1 h-40 rounded-[2rem] border-b-8 flex flex-col items-center justify-center transition-all ${activeBtn === 'UP' ? 'bg-green-500 border-green-700 translate-y-2' : 'bg-[#1ed760] border-green-600 text-black shadow-[0_0_40px_rgba(30,215,96,0.3)]'}`}>
+             <span className="font-black text-3xl tracking-widest">GAS</span>
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // 🔥 DEFAULT ARCADE CONTROLLER (Jo pehle tha)
   return (
     <main className="fixed inset-0 w-full h-[100dvh] bg-[#1c1c1c] text-white flex flex-col items-center justify-between py-10 px-4 touch-none select-none overflow-hidden font-sans">
       
