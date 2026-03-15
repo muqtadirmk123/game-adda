@@ -71,61 +71,90 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔥 VIP SYNTHESIZER SOUND ENGINE 🔥
+  // 🔥 PREMIUM CINEMATIC SOUND ENGINE 🔥
   const playSound = (type: 'move' | 'select' | 'join' | 'startup') => {
     if (isMutedRef.current || !audioCtxRef.current) return;
     try {
       const ctx = audioCtxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
+      
       if (type === 'move') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
         osc.type = 'sine'; osc.frequency.setValueAtTime(400, ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
         osc.start(); osc.stop(ctx.currentTime + 0.05);
       } 
       else if (type === 'select') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
         osc.type = 'triangle'; osc.frequency.setValueAtTime(600, ctx.currentTime);
         osc.frequency.setValueAtTime(800, ctx.currentTime + 0.05);
-        gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
         osc.start(); osc.stop(ctx.currentTime + 0.15);
       }
       else if (type === 'join') {
-        // Crisp, happy digital chime when player connects
-        osc.type = 'sine'; 
-        osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
-        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-        osc.start(); osc.stop(ctx.currentTime + 0.3);
+        // Modern Premium Device Pair Chime (Fast Arpeggio)
+        const notes = [523.25, 659.25, 783.99, 987.77]; // C5, E5, G5, B5 (Major 7th)
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const startTime = ctx.currentTime + (i * 0.06);
+          gain.gain.setValueAtTime(0, startTime);
+          gain.gain.linearRampToValueAtTime(0.1, startTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+          osc.start(startTime);
+          osc.stop(startTime + 0.6);
+        });
       }
       else if (type === 'startup') {
-        // Deep, PlayStation/Xbox style cinematic drone
-        const osc2 = ctx.createOscillator();
-        const gain2 = ctx.createGain();
-        osc2.connect(gain2); gain2.connect(ctx.destination);
+        // Deep Cinematic Console Startup (Bass Drop + Ethereal Swell)
+        const masterGain = ctx.createGain();
+        masterGain.connect(ctx.destination);
+        masterGain.gain.value = 0.4;
 
-        // Low Bass Drone
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(55, ctx.currentTime); // Low A
-        gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 1); // Fade in
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 4); // Fade out slowly
+        // 1. The Sub-Bass Drop
+        const bassOsc = ctx.createOscillator();
+        const bassGain = ctx.createGain();
+        bassOsc.connect(bassGain); bassGain.connect(masterGain);
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.setValueAtTime(110, ctx.currentTime); // A2
+        bassOsc.frequency.exponentialRampToValueAtTime(55, ctx.currentTime + 1.5); // Drop to A1
+        bassGain.gain.setValueAtTime(0, ctx.currentTime);
+        bassGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.2);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4);
+        bassOsc.start(ctx.currentTime); bassOsc.stop(ctx.currentTime + 4.5);
 
-        // High Shimmering Chord
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(440, ctx.currentTime); // A4
-        osc2.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 2.5); // Sweep up
-        gain2.gain.setValueAtTime(0, ctx.currentTime);
-        gain2.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.5);
-        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 3.5);
+        // 2. The Lush Shimmering Chord
+        const chord = [220.00, 261.63, 329.63, 415.30]; // A3, C4, E4, G#4 (A minor 9)
+        chord.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(masterGain);
+          osc.type = 'sine';
+          osc.frequency.value = freq + (Math.random() * 2 - 1); // Slight cinematic detune
+          gain.gain.setValueAtTime(0, ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.5 + (i * 0.2)); // Slow swell
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4.5);
+          osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 5);
+        });
 
-        osc.start(); osc.stop(ctx.currentTime + 4);
-        osc2.start(); osc2.stop(ctx.currentTime + 4);
+        // 3. High Ethereal Sweep
+        const sweepOsc = ctx.createOscillator();
+        const sweepGain = ctx.createGain();
+        sweepOsc.connect(sweepGain); sweepGain.connect(masterGain);
+        sweepOsc.type = 'sine';
+        sweepOsc.frequency.setValueAtTime(880, ctx.currentTime + 0.5);
+        sweepOsc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 2.5);
+        sweepGain.gain.setValueAtTime(0, ctx.currentTime + 0.5);
+        sweepGain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 1.5);
+        sweepGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 4);
+        sweepOsc.start(ctx.currentTime + 0.5); sweepOsc.stop(ctx.currentTime + 4.5);
       }
     } catch (e) {}
   };
@@ -165,8 +194,7 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
-              // 🔥 Naya player aya hai, Join Sound bajao!
-              playSound('join');
+              playSound('join'); // 🔥 PREMIUM JOIN SOUND HERE
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
@@ -178,17 +206,15 @@ export default function Home() {
               if (existingPlayer) {
                  return prev.map(p => p.id === deviceId ? { ...p, name, lastSeen: Date.now() } : p);
               }
-              // Agar disconnect hokar wapas aya hai
-              playSound('join');
+              playSound('join'); // 🔥 PREMIUM JOIN SOUND RE-CONNECT
               return [...prev, { id: deviceId, name, lastSeen: Date.now() }];
            });
         })
         .on('broadcast', { event: 'start_game' }, () => {
            if (viewStateRef.current === 'pairing') {
-             // 🔥 Console Startup Sound bajao!
-             playSound('startup');
+             playSound('startup'); // 🔥 CINEMATIC STARTUP SOUND HERE
              setViewState('splash');
-             setTimeout(() => setViewState('dashboard'), 3500); // Thora time barhaya taake startup sound poora mehsoos ho
+             setTimeout(() => setViewState('dashboard'), 3500); // 3.5 seconds to let the big sound play out
            }
         })
         .on('broadcast', { event: 'command' }, (payload) => {
@@ -271,6 +297,9 @@ export default function Home() {
     );
   };
 
+  // -------------------------
+  // PLAYING STATE (FULLSCREEN GAME)
+  // -------------------------
   if (viewState === 'playing' && activeGame) {
     return (
       <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
@@ -287,11 +316,15 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // SPLASH SCREEN
+  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
         <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
+          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-6xl font-extrabold tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -304,6 +337,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // PAIRING SCREEN
+  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
@@ -313,6 +349,7 @@ export default function Home() {
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
+            {/* 🔥 Uniform Logo Fixed */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -384,6 +421,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // CONSOLE DASHBOARD
+  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -395,6 +435,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
+           {/* 🔥 Uniform Logo Fixed */}
            <div className="text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -445,10 +486,14 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // LANDING PAGE
+  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-3xl font-extrabold tracking-tighter">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
