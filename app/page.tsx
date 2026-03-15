@@ -257,7 +257,7 @@ export default function Home() {
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
         <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
-          {/* 🔥 Uniform Logo */}
+          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-6xl font-extrabold tracking-tighter mb-6">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -271,7 +271,7 @@ export default function Home() {
   }
 
   // -------------------------
-  // 🔥 MODERN 2026 PAIRING SCREEN 🔥
+  // PAIRING SCREEN
   // -------------------------
   if (viewState === 'pairing') {
     return (
@@ -282,7 +282,7 @@ export default function Home() {
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
-            {/* 🔥 Uniform Logo */}
+            {/* 🔥 Uniform Logo Fixed */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -368,7 +368,7 @@ export default function Home() {
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           {/* 🔥 Uniform Logo */}
+           {/* 🔥 Uniform Logo Fixed */}
            <div className="text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -426,7 +426,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* 🔥 Uniform Logo */}
+          {/* 🔥 Uniform Logo Fixed */}
           <div className="text-3xl font-extrabold tracking-tighter">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
