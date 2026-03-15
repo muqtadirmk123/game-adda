@@ -283,7 +283,7 @@ export default function Home() {
           
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
             {/* 🔥 Uniform Logo */}
-            <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-2xl font-extrabold tracking-tighter">
+            <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
             </div>
@@ -330,7 +330,7 @@ export default function Home() {
                </div>
              ) : (
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2 scrollbar-hide">
-                 {players.map((p, i) => (
+                 {players.map((p) => (
                    <div key={p.id} className="bg-black/20 border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/5 transition-colors">
                      <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black shadow-inner uppercase">
                        {p.name.charAt(0)}
@@ -375,7 +375,7 @@ export default function Home() {
            </div>
            
            <div className="flex gap-4 items-center">
-              {players.slice(0,2).map((p, i) => (
+              {players.slice(0,2).map((p) => (
                 <div key={p.id} className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
                    <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black uppercase">{p.name.charAt(0)}</span>
                    <span className="tracking-widest uppercase text-sm truncate max-w-[80px]">{p.name}</span>

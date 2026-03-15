@@ -13,10 +13,22 @@ function RemoteController() {
   
   const [playerName, setPlayerName] = useState('Player 1');
   const channelRef = useRef<any>(null);
+  
+  // 🔥 YAHAN FIX KIYA HAI: Unique Device ID generate hogi
+  const deviceIdRef = useRef<string>('');
 
   useEffect(() => {
+    // Session se Player Name uthao
     const savedName = localStorage.getItem('ga_playerName');
     if (savedName) setPlayerName(savedName);
+
+    // Session se Device ID uthao ya nayi banao
+    let dId = localStorage.getItem('ga_deviceId');
+    if (!dId) {
+      dId = 'dev_' + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('ga_deviceId', dId);
+    }
+    deviceIdRef.current = dId;
 
     const preventScroll = (e: TouchEvent) => e.preventDefault();
     document.addEventListener('touchmove', preventScroll, { passive: false });
@@ -27,18 +39,26 @@ function RemoteController() {
   useEffect(() => {
     const handleUnload = () => {
       if (channelRef.current) {
-        channelRef.current.send({ type: 'broadcast', event: 'command', payload: { command: 'DISCONNECT' } });
+        channelRef.current.send({ 
+          type: 'broadcast', 
+          event: 'command', 
+          payload: { command: 'DISCONNECT', deviceId: deviceIdRef.current, playerName } 
+        });
       }
     };
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
+  }, [playerName]);
 
   const handleNameChange = (newName: string) => {
     setPlayerName(newName);
     localStorage.setItem('ga_playerName', newName);
     if (channelRef.current) {
-      channelRef.current.send({ type: 'broadcast', event: 'ping', payload: { playerName: newName } });
+      channelRef.current.send({ 
+        type: 'broadcast', 
+        event: 'ping', 
+        payload: { playerName: newName, deviceId: deviceIdRef.current } 
+      });
     }
   };
 
@@ -52,19 +72,28 @@ function RemoteController() {
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           channelRef.current = channel;
-          channel.send({ type: 'broadcast', event: 'join', payload: { playerName } });
+          // 🔥 Join bhejte waqt Device ID zaroor bhejo
+          channel.send({ 
+            type: 'broadcast', 
+            event: 'join', 
+            payload: { playerName, deviceId: deviceIdRef.current } 
+          });
         }
       });
       return () => { supabase.removeChannel(channel); };
     }
-  }, [searchParams]);
+  }, [searchParams, playerName]);
 
   // 🫀 Fast Heartbeat every 5 seconds
   useEffect(() => {
     if (remoteState !== 'connecting') {
       const pingInterval = setInterval(() => {
         if (channelRef.current) {
-          channelRef.current.send({ type: 'broadcast', event: 'ping', payload: { playerName } });
+          channelRef.current.send({ 
+            type: 'broadcast', 
+            event: 'ping', 
+            payload: { playerName, deviceId: deviceIdRef.current } 
+          });
         }
       }, 5000);
       return () => clearInterval(pingInterval);
@@ -84,7 +113,11 @@ function RemoteController() {
       document.documentElement.requestFullscreen().catch(() => {});
     }
     if (channelRef.current) {
-      channelRef.current.send({ type: 'broadcast', event: 'start_game', payload: {} });
+      channelRef.current.send({ 
+        type: 'broadcast', 
+        event: 'start_game', 
+        payload: { deviceId: deviceIdRef.current } 
+      });
     }
     setRemoteState('controller');
   };
@@ -99,7 +132,11 @@ function RemoteController() {
     if (command === 'MUTE') setIsMuted(!isMuted);
 
     if (channelRef.current) {
-      channelRef.current.send({ type: 'broadcast', event: 'command', payload: { command, playerName } });
+      channelRef.current.send({ 
+        type: 'broadcast', 
+        event: 'command', 
+        payload: { command, playerName, deviceId: deviceIdRef.current } 
+      });
     }
   };
 
