@@ -31,9 +31,17 @@ export default function Home() {
   useEffect(() => { gamesRef.current = games; }, [games]);
   useEffect(() => { playersRef.current = players; }, [players]);
 
+  // 🔥 FULLSCREEN FUNCTION
   const enterFullScreen = () => {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
+    const elem = document.documentElement;
+    if (!document.fullscreenElement) {
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => console.log("Fullscreen blocked"));
+      } else if ((elem as any).webkitRequestFullscreen) { /* Safari */
+        (elem as any).webkitRequestFullscreen();
+      } else if ((elem as any).msRequestFullscreen) { /* IE11 */
+        (elem as any).msRequestFullscreen();
+      }
     }
   };
 
@@ -85,11 +93,9 @@ export default function Home() {
     } catch (e) {}
   };
 
-  // 🔥 IMPORTANT: This is how we send commands to 3rd party games!
   const sendCommandToGame = (command: string) => {
     const iframe = document.getElementById('game-iframe') as HTMLIFrameElement;
     if (iframe && iframe.contentWindow) {
-      // Send message to the iframe
       iframe.contentWindow.postMessage({ type: 'CONTROLLER_COMMAND', command }, '*');
     }
   };
@@ -131,7 +137,6 @@ export default function Home() {
         })
         .on('broadcast', { event: 'start_game' }, () => {
            if (viewStateRef.current === 'pairing') {
-             enterFullScreen();
              playSound('select');
              setViewState('splash');
              setTimeout(() => setViewState('dashboard'), 3000);
@@ -156,14 +161,13 @@ export default function Home() {
              return;
           }
 
-          // 🔥 FIXED: Handle 'playing' state logic
           if (viewStateRef.current === 'playing') {
              if (cmd === 'HOME') {
                playSound('select');
                setViewState('dashboard');
                setActiveGame(null);
              } else {
-               sendCommandToGame(cmd); // Send to iframe instead of window
+               sendCommandToGame(cmd); 
              }
              return;
           }
@@ -217,11 +221,14 @@ export default function Home() {
     );
   };
 
+  // -------------------------
+  // PLAYING STATE (FULLSCREEN GAME)
+  // -------------------------
   if (viewState === 'playing' && activeGame) {
     return (
       <main className="fixed inset-0 bg-black z-[999] overflow-hidden touch-none flex items-center justify-center">
         <iframe 
-          id="game-iframe" // Required for sendCommandToGame
+          id="game-iframe"
           src={activeGame.iframe_url} 
           className="w-full h-full border-none outline-none" 
           allowFullScreen 
@@ -233,6 +240,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // SPLASH SCREEN
+  // -------------------------
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden">
@@ -249,6 +259,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // PAIRING SCREEN
+  // -------------------------
   if (viewState === 'pairing') {
     return (
       <main className="h-screen flex bg-[#050511] font-sans">
@@ -282,11 +295,18 @@ export default function Home() {
           <div className="bg-white p-4 rounded-2xl shadow-2xl">
             <QRCodeSVG value={`${window.location.origin}/remote?code=${roomCode}&auto=true`} size={200} />
           </div>
+          {/* EXPLICIT EXIT BUTTON JUST IN CASE */}
+          <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-6 right-6 bg-white/10 hover:bg-white/20 border border-white/20 p-2.5 rounded-xl text-white transition-colors cursor-pointer" title="Exit Pairing">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
         </div>
       </main>
     );
   }
 
+  // -------------------------
+  // CONSOLE DASHBOARD
+  // -------------------------
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -314,7 +334,7 @@ export default function Home() {
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
-              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer">
+              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer" title="Exit Console">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
               </button>
            </div>
@@ -348,6 +368,9 @@ export default function Home() {
     );
   }
 
+  // -------------------------
+  // LANDING PAGE
+  // -------------------------
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
@@ -368,7 +391,22 @@ export default function Home() {
       <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">Use your phone as a controller and dive into the arcade.</p>
-        <button onClick={() => { if (!audioCtxRef.current) { const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext; if (AudioContextClass) audioCtxRef.current = new AudioContextClass(); } setViewState('pairing'); }} className="bg-[#1ed760] text-black px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(30,215,96,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10">Start playing now</button>
+        
+        {/* 🔥 YAHAN PAR FULLSCREEN TRIGGER HOGA 🔥 */}
+        <button 
+          onClick={() => { 
+            enterFullScreen(); 
+            if (!audioCtxRef.current) { 
+              const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext; 
+              if (AudioContextClass) audioCtxRef.current = new AudioContextClass(); 
+            } 
+            setViewState('pairing'); 
+          }} 
+          className="bg-[#1ed760] text-black px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(30,215,96,0.3)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10"
+        >
+          Start playing now
+        </button>
+        
       </section>
       <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10 pt-4">
         <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
