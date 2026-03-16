@@ -170,12 +170,12 @@ function RemoteController() {
           </button>
         </div>
 
-        {/* 🔥 Logo ka Size Bada Kar Diya (w-24 h-24) 🔥 */}
+        {/* 🔥 Logo Wapas Bara (w-24 h-24) 🔥 */}
         <div className="absolute top-8 left-6 z-10">
            <img src="/logo.png" alt="GA" className="w-24 h-24 object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
         </div>
 
-        <div className="flex flex-col items-center relative z-10 mt-14">
+        <div className="flex flex-col items-center relative z-10 mt-10">
           <div className="w-32 h-32 bg-gradient-to-br from-cyan-500 to-blue-700 rounded-full flex items-center justify-center text-6xl font-black text-white mb-8 shadow-[0_0_40px_rgba(6,182,212,0.4)] uppercase border-4 border-white/20">
             {playerName.charAt(0)}
           </div>

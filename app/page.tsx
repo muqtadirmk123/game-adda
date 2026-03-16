@@ -383,7 +383,7 @@ export default function Home() {
     );
   }
 
-  // 🔥 VIP 3D ANIMATED SPLASH SCREEN 🔥
+  // 🔥 VIP 3D ANIMATED SPLASH SCREEN (HUGE Logo w-72 h-72) 🔥
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
@@ -428,6 +428,7 @@ export default function Home() {
     );
   }
 
+  // 🔥 PAIRING SCREEN (Logo Bada w-24 h-24 -my-6) 🔥
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
@@ -504,6 +505,7 @@ export default function Home() {
     );
   }
 
+  // 🔥 GAMING PORTAL (DASHBOARD) - Logo Chota aur Sleek (w-12 h-12) 🔥
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -530,9 +532,10 @@ export default function Home() {
            <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-transparent"></div>
         </div>
 
+        {/* Dashboard Top Bar (Compact Box, Small Logo) */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="bg-black/30 backdrop-blur-xl px-6 py-2 rounded-2xl border border-white/10 text-4xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-4">
-              <img src="/logo.png" alt="Logo" className="w-24 h-24 -my-4 object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
+           <div className="bg-black/30 backdrop-blur-xl px-5 py-2.5 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-3">
+              <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
               <div>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Game</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-500">Adda</span>
@@ -608,21 +611,18 @@ export default function Home() {
     );
   }
 
+  // 🔥 LANDING PAGE HOME (Logo Bada w-20 h-20 -my-4) 🔥
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
-      {/* 🔥 Slim Navbar with Big Overhanging Logo 🔥 */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex justify-between items-center">
-          
-          <div className="flex items-center gap-3 text-4xl font-extrabold tracking-tighter">
-            {/* -my-4 forces it to ignore some vertical space, keeping nav thin */}
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4 text-4xl font-extrabold tracking-tighter">
             <img src="/logo.png" alt="GA Logo" className="w-20 h-20 -my-4 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] relative z-20" />
             <div>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
             </div>
           </div>
-          
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
@@ -635,7 +635,6 @@ export default function Home() {
           </div>
         </div>
       </nav>
-      
       <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">Use your phone as a controller and dive into the arcade.</p>
