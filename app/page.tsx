@@ -450,7 +450,7 @@ export default function Home() {
                   <p className="text-gray-400 font-bold tracking-[3px] uppercase text-xs">Awaiting challengers...</p>
                </div>
              ) : (
-               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2 scrollbar-hide">
+               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                  {players.map((p) => (
                    <div key={p.id} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/10 transition-colors">
                      <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black uppercase shadow-[0_0_15px_rgba(6,182,212,0.4)]">
@@ -473,15 +473,15 @@ export default function Home() {
     );
   }
 
-  // 🔥 VIP CONSOLE DASHBOARD UI (Ultra Clear & Glassmorphic) 🔥
+  // 🔥 100% ERROR-FREE VIP CONSOLE DASHBOARD UI 🔥
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
         
-        {/* 🔥 100% CLEAR VIDEO ENGINE 🔥 */}
-        <div className="absolute inset-0 z-0 bg-black">
+        {/* 🔥 CRYSTAL CLEAR BACKGROUND ENGINE 🔥 */}
+        <div className="absolute inset-0 z-0 bg-[#050511]">
            {highlightedGame?.video_url ? (
              <video 
                key={highlightedGame.id}
@@ -490,51 +490,53 @@ export default function Home() {
                loop 
                muted 
                playsInline 
-               className="w-full h-full object-cover transition-all duration-700" 
+               className="w-full h-full object-cover transition-opacity duration-700 opacity-100" 
              />
            ) : (
              <img 
                src={highlightedGame?.thumbnail_url} 
-               // Broken image safety: bg-gray-900 will show if image fails
-               className="w-full h-full object-cover transition-all duration-500 bg-gray-900" 
+               className="w-full h-full object-cover transition-opacity duration-500 opacity-100 bg-[#121220]" 
              />
            )}
-           {/* Only a subtle fade at the very bottom for text readability */}
-           <div className="absolute bottom-0 w-full h-2/3 bg-gradient-to-t from-[#050511] via-[#050511]/60 to-transparent"></div>
+           {/* Only fade the very bottom for text readability, everything else is clear */}
+           <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-transparent"></div>
         </div>
 
-        {/* TOP BAR (Glassmorphism + Neon) */}
+        {/* TOP BAR (Glassmorphism, NO Broken Logo) */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="bg-black/30 backdrop-blur-xl px-6 py-2 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter shadow-2xl">
+           <div className="bg-black/30 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-2xl">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-500">Adda</span>
            </div>
            
            <div className="flex gap-4 items-center">
               {players.slice(0,2).map((p) => (
-                <div key={p.id} className="bg-black/40 backdrop-blur-xl border border-white/10 px-5 py-2 rounded-2xl text-white font-bold flex items-center gap-3 shadow-lg">
+                <div key={p.id} className="bg-black/40 backdrop-blur-xl border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-lg">
                    <span className="w-6 h-6 bg-cyan-400 text-black rounded-full flex items-center justify-center text-xs font-black uppercase shadow-[0_0_10px_rgba(34,211,238,0.6)]">{p.name.charAt(0)}</span>
                    <span className="tracking-widest uppercase text-sm truncate max-w-[80px]">{p.name}</span>
                 </div>
               ))}
-              <div className="bg-black/50 backdrop-blur-xl border border-cyan-500/40 px-6 py-2 rounded-2xl text-white font-bold flex items-center gap-3 shadow-[0_0_25px_rgba(34,211,238,0.2)]">
+              <div className="bg-black/50 backdrop-blur-xl border border-cyan-500/40 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_25px_rgba(34,211,238,0.2)]">
                  <span className="text-cyan-400 text-sm uppercase tracking-widest opacity-90">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
+              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/10 backdrop-blur-xl p-3 rounded-xl text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-colors">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+              </button>
            </div>
         </div>
 
         {/* GAME INFO AREA */}
-        <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-12">
+        <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-10">
            <div className="max-w-4xl mb-4 animate-in slide-in-from-bottom-8 fade-in duration-700">
-              <h4 className="text-cyan-400 text-sm font-bold tracking-[5px] uppercase mb-4 flex items-center gap-3 drop-shadow-lg">
-                <span className="w-2 h-2 bg-fuchsia-500 rounded-full animate-pulse shadow-[0_0_10px_#d946ef]"></span> MULTIPLAYER ARCADE
+              <h4 className="text-cyan-400 text-sm font-bold tracking-[5px] uppercase mb-4 flex items-center gap-3 drop-shadow-md">
+                <span className="w-2.5 h-2.5 bg-fuchsia-500 rounded-full animate-pulse shadow-[0_0_10px_#d946ef]"></span> MULTIPLAYER ARCADE
               </h4>
-              <h1 className="text-7xl lg:text-8xl font-black text-white mb-6 leading-tight drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] tracking-tight">
+              <h1 className="text-7xl lg:text-8xl font-black text-white mb-6 leading-tight drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] tracking-tight">
                  {highlightedGame?.title || 'Unknown Game'}
               </h1>
               
-              <div className="flex items-center gap-4 mb-10 text-yellow-400 text-lg drop-shadow-md">
+              <div className="flex items-center gap-4 mb-8 text-yellow-400 text-lg drop-shadow-md">
                  ★★★★★ 
                  <span className="text-white text-xs font-bold tracking-widest px-4 py-1.5 bg-white/10 border border-white/20 rounded-full backdrop-blur-md ml-3">
                    {highlightedGame?.category || 'ARCADE'}
@@ -548,16 +550,19 @@ export default function Home() {
            </div>
         </div>
 
-        {/* HORIZONTAL CAROUSEL (Scrollbars Hacked Hidden completely) */}
+        {/* HORIZONTAL CAROUSEL - SCROLLBARS 100% HIDDEN */}
         <div 
            ref={gameListRef} 
-           // Tailwind arbitrary values to completely hide scrollbar across all browsers
-           className="relative z-10 h-64 px-16 pb-10 flex items-end gap-6 overflow-x-auto snap-x [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+           className="relative z-10 h-64 px-16 pb-10 flex items-end gap-6 overflow-x-auto snap-x"
+           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
+           <style dangerouslySetInnerHTML={{__html: `
+             ::-webkit-scrollbar { display: none; }
+           `}} />
+           
            {filteredGames.map((game, idx) => (
              <div 
                key={game.id} 
-               // Broken image safety: bg-[#121220] will show nicely if image url is bad
                className={`snap-center shrink-0 relative min-w-[280px] bg-[#121220] rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer 
                   ${selectedIndex === idx ? 'h-48 border-[3px] border-cyan-400 scale-110 shadow-[0_0_40px_rgba(6,182,212,0.5)] z-30 mb-2' 
                                           : 'h-36 border border-white/10 opacity-50 scale-95 hover:opacity-100 hover:scale-100 mb-0'}`}
