@@ -383,11 +383,10 @@ export default function Home() {
     );
   }
 
-  // 🔥 VIP 3D ANIMATED SPLASH SCREEN (Improved Rotation) 🔥
+  // 🔥 VIP 3D ANIMATED SPLASH SCREEN 🔥
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
-        {/* Custom Keyframe Animation Injector */}
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes advancedEpicSpin {
             0% { 
@@ -414,8 +413,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/30 via-[#050511] to-[#050511]"></div>
         
         <div className="relative z-10 flex flex-col items-center animate-epic-advanced" style={{ perspective: '1000px' }}>
-          {/* 🔥 Improved 3D Animated Logo */}
-          <img src="/logo.png" alt="GameAdda Logo" className="w-56 h-56 mb-8 object-contain drop-shadow-[0_0_50px_rgba(34,211,238,0.9)]" />
+          <img src="/logo.png" alt="GameAdda Logo" className="w-72 h-72 mb-8 object-contain drop-shadow-[0_0_60px_rgba(34,211,238,0.9)]" />
           
           <div className="text-7xl font-extrabold tracking-tighter mb-8 drop-shadow-2xl">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
@@ -438,16 +436,15 @@ export default function Home() {
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
             
-            {/* 🔥 Pairing Screen Logo (Resized Controller) */}
             <div className="absolute top-8 left-8 lg:top-12 lg:left-12 flex items-center gap-4 text-4xl font-extrabold tracking-tighter">
-              <img src="/logo.png" alt="GA Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)]" />
+              <img src="/logo.png" alt="GA Logo" className="w-24 h-24 -my-6 object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.7)]" />
               <div>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
               </div>
             </div>
 
-            <div className="mt-12 lg:mt-0">
+            <div className="mt-16 lg:mt-6">
               <h2 className="text-5xl font-black text-white mb-4 tracking-tight">Link Device</h2>
               <p className="text-gray-400 text-lg mb-10">Scan the visual code or navigate to <span className="text-cyan-400 font-bold">gameadda.com</span> on your phone.</p>
               <div className="flex flex-col xl:flex-row gap-8 items-start xl:items-center">
@@ -533,10 +530,9 @@ export default function Home() {
            <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-transparent"></div>
         </div>
 
-        {/* 🔥 Dashboard Top Bar Logo (Resized Controller) 🔥 */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="bg-black/30 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-4xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-4">
-              <img src="/logo.png" alt="Logo" className="w-11 h-11 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
+           <div className="bg-black/30 backdrop-blur-xl px-6 py-2 rounded-2xl border border-white/10 text-4xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-4">
+              <img src="/logo.png" alt="Logo" className="w-24 h-24 -my-4 object-contain drop-shadow-[0_0_20px_rgba(34,211,238,0.8)]" />
               <div>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Game</span>
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-500">Adda</span>
@@ -614,16 +610,19 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
+      {/* 🔥 Slim Navbar with Big Overhanging Logo 🔥 */}
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* 🔥 Homepage Top Navbar Logo (Resized Controller) 🔥 */}
-          <div className="flex items-center gap-4 text-4xl font-extrabold tracking-tighter">
-            <img src="/logo.png" alt="GA Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)]" />
+        <div className="max-w-7xl mx-auto px-6 py-2 flex justify-between items-center">
+          
+          <div className="flex items-center gap-3 text-4xl font-extrabold tracking-tighter">
+            {/* -my-4 forces it to ignore some vertical space, keeping nav thin */}
+            <img src="/logo.png" alt="GA Logo" className="w-20 h-20 -my-4 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] relative z-20" />
             <div>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
             </div>
           </div>
+          
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
@@ -636,6 +635,7 @@ export default function Home() {
           </div>
         </div>
       </nav>
+      
       <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
         <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">Use your phone as a controller and dive into the arcade.</p>
