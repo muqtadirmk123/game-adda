@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
-// 🔥 Naye columns: video_url aur controller_url
 interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; video_url?: string; controller_url?: string; }
 interface Player { id: string; name: string; lastSeen: number; }
 
@@ -28,6 +27,9 @@ export default function Home() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const isMutedRef = useRef(false);
   const channelRef = useRef<any>(null); 
+  
+  // 🔥 AUTO-SCROLL REF
+  const gameListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
@@ -51,6 +53,17 @@ export default function Home() {
       document.exitFullscreen().catch(() => {});
     }
   };
+
+  // 🔥 AUTO-SCROLL LOGIC
+  useEffect(() => {
+    if (viewState === 'dashboard' && gameListRef.current) {
+      const container = gameListRef.current;
+      const children = container.children;
+      if (children[selectedIndex]) {
+        children[selectedIndex].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [selectedIndex, viewState]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -261,12 +274,20 @@ export default function Home() {
              isMutedRef.current = !isMutedRef.current;
              return;
           }
+
+          // 🔥 SMART LEAVE LOGIC (Multiplayer Fix)
           if (cmd === 'DISCONNECT') {
-             exitFullScreen();
-             setViewState('home');
-             setPlayers([]);
-             setActiveGame(null);
-             sessionStorage.removeItem('ga_roomCode');
+             setPlayers(prev => {
+               const updatedPlayers = prev.filter(p => p.id !== deviceId);
+               // Agar aakhri player leave kare, tab TV Home pe jayega
+               if (updatedPlayers.length === 0) {
+                 exitFullScreen();
+                 setViewState('home');
+                 setActiveGame(null);
+                 sessionStorage.removeItem('ga_roomCode');
+               }
+               return updatedPlayers;
+             });
              return;
           }
 
@@ -276,7 +297,11 @@ export default function Home() {
                setViewState('dashboard');
                setActiveGame(null);
                if (channelRef.current) {
-                 channelRef.current.send({ type: 'broadcast', event: 'set_controller', payload: { controller_url: null } });
+                 channelRef.current.send({ 
+                    type: 'broadcast', 
+                    event: 'set_controller', 
+                    payload: { controller_url: null } 
+                 });
                }
              } else {
                sendCommandToGame(cmd); 
@@ -409,17 +434,19 @@ export default function Home() {
           <div className="flex-1 p-12 lg:p-16 bg-gradient-to-br from-white/[0.01] to-black/40 flex flex-col relative">
              <div className="flex justify-between items-center mb-12">
                <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                 <span className="w-2.5 h-2.5 bg-[#1ed760] rounded-full animate-pulse"></span>
+                 <span className="w-2.5 h-2.5 bg-[#1ed760] rounded-full animate-pulse shadow-[0_0_15px_#1ed760]"></span>
                  Player Lounge
                </h3>
-               <span className="bg-white/5 border border-white/10 px-4 py-1.5 rounded-full text-xs font-bold text-gray-300">
+               <span className="bg-[#1ed760]/10 border border-[#1ed760]/30 px-4 py-1.5 rounded-full text-xs font-bold text-[#1ed760] tracking-widest uppercase shadow-[0_0_10px_rgba(30,215,96,0.2)]">
                  {players.length} Connected
                </span>
              </div>
              {players.length === 0 ? (
                <div className="flex-1 flex flex-col items-center justify-center opacity-70">
                   <div className="relative w-32 h-32 flex items-center justify-center mb-8">
-                     <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-ping"></div>
+                     <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-ping duration-1000"></div>
+                     <div className="absolute inset-4 border-2 border-cyan-500/40 rounded-full animate-ping duration-1000 delay-150"></div>
+                     <div className="absolute inset-8 border border-fuchsia-500/30 rounded-full animate-ping duration-1000 delay-300"></div>
                      <svg className="w-10 h-10 text-cyan-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 4v16m8-8H4" /></svg>
                   </div>
                   <p className="text-gray-400 font-bold tracking-[3px] uppercase text-xs">Awaiting challengers...</p>
@@ -427,8 +454,8 @@ export default function Home() {
              ) : (
                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 auto-rows-max overflow-y-auto pr-2 scrollbar-hide">
                  {players.map((p) => (
-                   <div key={p.id} className="bg-black/20 border border-white/10 p-5 rounded-3xl flex items-center gap-4">
-                     <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black uppercase">
+                   <div key={p.id} className="bg-white/5 backdrop-blur-md border border-white/10 p-5 rounded-3xl flex items-center gap-4 animate-in slide-in-from-bottom-4 fade-in duration-500 shadow-xl hover:bg-white/10 transition-colors">
+                     <div className="w-14 h-14 bg-gradient-to-br from-cyan-400 to-blue-600 rounded-[1rem] flex items-center justify-center text-xl font-black text-black uppercase shadow-[0_0_15px_rgba(6,182,212,0.4)]">
                        {p.name.charAt(0)}
                      </div>
                      <div className="flex flex-col">
@@ -439,7 +466,7 @@ export default function Home() {
                  ))}
                </div>
              )}
-             <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-8 right-8 lg:top-12 lg:right-12 bg-white/5 p-3 rounded-2xl text-gray-400 hover:text-white transition-all">
+             <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="absolute top-8 right-8 lg:top-12 lg:right-12 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 p-3 rounded-2xl text-red-400 hover:text-red-300 transition-all" title="Cancel Pairing">
                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
              </button>
           </div>
@@ -464,7 +491,7 @@ export default function Home() {
                loop 
                muted 
                playsInline 
-               className="w-full h-full object-cover opacity-50 transition-all duration-700 scale-105 blur-[2px]" 
+               className="w-full h-full object-cover opacity-60 transition-all duration-700 scale-105 blur-[2px]" 
              />
            ) : (
              <img 
@@ -472,52 +499,55 @@ export default function Home() {
                className="w-full h-full object-cover opacity-50 transition-all duration-500 scale-105 blur-md" 
              />
            )}
-           <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/80 to-[#050511]/30"></div>
+           <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/80 to-[#050511]/40 backdrop-blur-[1px]"></div>
         </div>
 
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="text-3xl font-extrabold tracking-tighter">
+           <div className="text-3xl font-extrabold tracking-tighter drop-shadow-lg">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
            </div>
            
            <div className="flex gap-4 items-center">
               {players.slice(0,2).map((p) => (
-                <div key={p.id} className="bg-black/50 border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3">
-                   <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black uppercase">{p.name.charAt(0)}</span>
+                <div key={p.id} className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-lg">
+                   <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black uppercase shadow-[0_0_10px_rgba(30,215,96,0.4)]">{p.name.charAt(0)}</span>
                    <span className="tracking-widest uppercase text-sm truncate max-w-[80px]">{p.name}</span>
                 </div>
               ))}
-              <div className="bg-black/80 border border-[#1ed760]/30 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3">
-                 <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-80">Room</span>
+              <div className="bg-black/60 backdrop-blur-md border border-[#1ed760]/40 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_25px_rgba(30,215,96,0.2)]">
+                 <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-90">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
-              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 p-2.5 rounded-xl text-red-400">
+              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer shadow-lg transition-all">
                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
               </button>
            </div>
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-10">
-           <div className="max-w-2xl mb-6">
-              <h4 className="text-cyan-400 text-sm font-bold tracking-widest uppercase mb-2">Featured Game</h4>
-              <h1 className="text-6xl font-black text-white mb-6 leading-tight drop-shadow-lg">{highlightedGame?.title || 'Unknown Game'}</h1>
-              <div className="flex items-center gap-4 mb-6 text-yellow-400 text-lg">
-                 ★★★★★ <span className="text-gray-300 text-sm font-medium">| {highlightedGame?.category || 'Arcade'}</span>
+        <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-12">
+           <div className="max-w-3xl mb-6">
+              <h4 className="text-cyan-400 text-sm font-bold tracking-widest uppercase mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span> Featured Game
+              </h4>
+              <h1 className="text-7xl font-black text-white mb-6 leading-tight drop-shadow-2xl">{highlightedGame?.title || 'Unknown Game'}</h1>
+              <div className="flex items-center gap-4 mb-8 text-yellow-400 text-lg drop-shadow-md">
+                 ★★★★★ <span className="text-gray-300 text-sm font-medium tracking-wider px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm">{highlightedGame?.category || 'Arcade'}</span>
               </div>
-              <button className="bg-[#1ed760] text-black px-10 py-4 rounded-xl font-black text-xl flex items-center gap-3 shadow-lg">
+              <button className="bg-gradient-to-r from-[#1ed760] to-[#42a82a] text-black px-12 py-5 rounded-full font-black text-xl flex items-center gap-3 shadow-[0_0_40px_rgba(30,215,96,0.4)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tight">
                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                  Play now
               </button>
            </div>
         </div>
 
-        <div className="relative z-10 h-48 px-16 pb-8 flex items-center gap-6 overflow-x-hidden">
+        {/* 🔥 AUTO-SCROLLING HORIZONTAL LIST 🔥 */}
+        <div ref={gameListRef} className="relative z-10 h-56 px-16 pb-8 flex items-center gap-6 overflow-x-auto scrollbar-hide snap-x">
            {filteredGames.map((game, idx) => (
-             <div key={game.id} className={`relative min-w-[240px] h-36 rounded-2xl overflow-hidden transition-all duration-300 shadow-xl ${selectedIndex === idx ? 'border-4 border-[#1ed760] scale-105' : 'border border-white/10 opacity-60 scale-95'}`}>
+             <div key={game.id} className={`snap-center shrink-0 relative min-w-[260px] h-40 rounded-[2rem] overflow-hidden transition-all duration-500 shadow-2xl cursor-pointer ${selectedIndex === idx ? 'border-4 border-[#1ed760] scale-110 shadow-[0_0_30px_rgba(30,215,96,0.4)] z-20' : 'border border-white/10 opacity-50 scale-95 hover:opacity-80 hover:scale-100'}`}>
                <img src={game.thumbnail_url} className="w-full h-full object-cover" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-4">
-                 <p className="text-white font-bold text-sm truncate">{game.title}</p>
+               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex items-end p-5">
+                 <p className="text-white font-black text-sm truncate tracking-wide">{game.title}</p>
                </div>
              </div>
            ))}
