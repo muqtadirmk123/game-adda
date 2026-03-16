@@ -28,7 +28,6 @@ export default function Home() {
   const isMutedRef = useRef(false);
   const channelRef = useRef<any>(null); 
   
-  // 🔥 AUTO-SCROLL REF
   const gameListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
@@ -54,7 +53,6 @@ export default function Home() {
     }
   };
 
-  // 🔥 AUTO-SCROLL LOGIC
   useEffect(() => {
     if (viewState === 'dashboard' && gameListRef.current) {
       const container = gameListRef.current;
@@ -275,11 +273,9 @@ export default function Home() {
              return;
           }
 
-          // 🔥 SMART LEAVE LOGIC (Multiplayer Fix)
           if (cmd === 'DISCONNECT') {
              setPlayers(prev => {
                const updatedPlayers = prev.filter(p => p.id !== deviceId);
-               // Agar aakhri player leave kare, tab TV Home pe jayega
                if (updatedPlayers.length === 0) {
                  exitFullScreen();
                  setViewState('home');
@@ -475,14 +471,15 @@ export default function Home() {
     );
   }
 
+  // 🔥 VIP CONSOLE DASHBOARD UI 🔥
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
         
-        {/* 🔥 DYNAMIC VIDEO PREVIEW ENGINE 🔥 */}
-        <div className="absolute inset-0 z-0">
+        {/* 🔥 CRYSTAL CLEAR BACKGROUND ENGINE 🔥 */}
+        <div className="absolute inset-0 z-0 bg-black">
            {highlightedGame?.video_url ? (
              <video 
                key={highlightedGame.id}
@@ -491,63 +488,69 @@ export default function Home() {
                loop 
                muted 
                playsInline 
-               className="w-full h-full object-cover opacity-60 transition-all duration-700 scale-105 blur-[2px]" 
+               className="w-full h-full object-cover transition-all duration-700 opacity-100" 
              />
            ) : (
              <img 
                src={highlightedGame?.thumbnail_url} 
-               className="w-full h-full object-cover opacity-50 transition-all duration-500 scale-105 blur-md" 
+               className="w-full h-full object-cover transition-all duration-500 opacity-100" 
              />
            )}
-           <div className="absolute inset-0 bg-gradient-to-t from-[#050511] via-[#050511]/80 to-[#050511]/40 backdrop-blur-[1px]"></div>
+           {/* Only fade the bottom part for text visibility, top stays completely clear */}
+           <div className="absolute bottom-0 w-full h-3/4 bg-gradient-to-t from-[#050511] via-[#050511]/80 to-transparent"></div>
         </div>
 
+        {/* TOP BAR (Glassmorphism) */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="text-3xl font-extrabold tracking-tighter drop-shadow-lg">
+           <div className="bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-lg shadow-xl">
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
            </div>
            
            <div className="flex gap-4 items-center">
               {players.slice(0,2).map((p) => (
-                <div key={p.id} className="bg-white/5 backdrop-blur-md border border-white/10 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-lg">
+                <div key={p.id} className="bg-black/60 backdrop-blur-md border border-white/20 px-5 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-lg">
                    <span className="w-6 h-6 bg-[#1ed760] text-black rounded-full flex items-center justify-center text-xs font-black uppercase shadow-[0_0_10px_rgba(30,215,96,0.4)]">{p.name.charAt(0)}</span>
                    <span className="tracking-widest uppercase text-sm truncate max-w-[80px]">{p.name}</span>
                 </div>
               ))}
-              <div className="bg-black/60 backdrop-blur-md border border-[#1ed760]/40 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_25px_rgba(30,215,96,0.2)]">
+              <div className="bg-black/60 backdrop-blur-md border border-[#1ed760]/50 px-6 py-2 rounded-xl text-white font-bold flex items-center gap-3 shadow-[0_0_25px_rgba(30,215,96,0.3)]">
                  <span className="text-[#1ed760] text-sm uppercase tracking-widest opacity-90">Room</span>
                  <span className="text-xl tracking-[5px] text-white font-mono">{roomCode}</span>
               </div>
-              <button onClick={() => { exitFullScreen(); setViewState('home'); }} className="bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 border border-red-500/50 p-2.5 rounded-xl text-red-400 cursor-pointer shadow-lg transition-all">
-                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-              </button>
            </div>
         </div>
 
+        {/* GAME INFO AREA */}
         <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-12">
-           <div className="max-w-3xl mb-6">
-              <h4 className="text-cyan-400 text-sm font-bold tracking-widest uppercase mb-3 flex items-center gap-2">
-                <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></span> Featured Game
+           <div className="max-w-3xl mb-6 animate-in slide-in-from-left-8 fade-in duration-500">
+              <h4 className="text-cyan-400 text-sm font-bold tracking-[4px] uppercase mb-4 flex items-center gap-3 drop-shadow-md">
+                <span className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_#22d3ee]"></span> MULTIPLAYER ARCADE
               </h4>
-              <h1 className="text-7xl font-black text-white mb-6 leading-tight drop-shadow-2xl">{highlightedGame?.title || 'Unknown Game'}</h1>
+              <h1 className="text-7xl font-black text-white mb-6 leading-tight drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] tracking-tight">{highlightedGame?.title || 'Unknown Game'}</h1>
+              
               <div className="flex items-center gap-4 mb-8 text-yellow-400 text-lg drop-shadow-md">
-                 ★★★★★ <span className="text-gray-300 text-sm font-medium tracking-wider px-3 py-1 bg-white/10 rounded-full backdrop-blur-sm">{highlightedGame?.category || 'Arcade'}</span>
+                 ★★★★★ 
+                 <span className="text-white text-sm font-bold tracking-widest px-4 py-1.5 bg-white/10 border border-white/20 rounded-full backdrop-blur-md ml-2">
+                   {highlightedGame?.category || 'ARCADE'}
+                 </span>
               </div>
-              <button className="bg-gradient-to-r from-[#1ed760] to-[#42a82a] text-black px-12 py-5 rounded-full font-black text-xl flex items-center gap-3 shadow-[0_0_40px_rgba(30,215,96,0.4)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tight">
-                 <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                 Play now
+              
+              <button className="bg-gradient-to-r from-[#1ed760] to-[#00e676] text-black px-12 py-5 rounded-full font-black text-xl flex items-center gap-3 shadow-[0_0_30px_rgba(30,215,96,0.5)] hover:scale-105 active:scale-95 transition-all uppercase tracking-[3px]">
+                 <svg className="w-7 h-7 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                 Press Select
               </button>
            </div>
         </div>
 
-        {/* 🔥 AUTO-SCROLLING HORIZONTAL LIST 🔥 */}
-        <div ref={gameListRef} className="relative z-10 h-56 px-16 pb-8 flex items-center gap-6 overflow-x-auto scrollbar-hide snap-x">
+        {/* HORIZONTAL CAROUSEL */}
+        <div ref={gameListRef} className="relative z-10 h-64 px-16 pb-8 flex items-end gap-6 overflow-x-auto scrollbar-hide snap-x">
            {filteredGames.map((game, idx) => (
-             <div key={game.id} className={`snap-center shrink-0 relative min-w-[260px] h-40 rounded-[2rem] overflow-hidden transition-all duration-500 shadow-2xl cursor-pointer ${selectedIndex === idx ? 'border-4 border-[#1ed760] scale-110 shadow-[0_0_30px_rgba(30,215,96,0.4)] z-20' : 'border border-white/10 opacity-50 scale-95 hover:opacity-80 hover:scale-100'}`}>
+             <div key={game.id} className={`snap-center shrink-0 relative min-w-[280px] rounded-3xl overflow-hidden transition-all duration-500 cursor-pointer 
+                ${selectedIndex === idx ? 'h-48 border-[4px] border-[#1ed760] scale-110 shadow-[0_0_40px_rgba(30,215,96,0.6)] z-30 mb-4' : 'h-36 border border-white/20 opacity-60 scale-95 hover:opacity-100 hover:scale-100 hover:border-white/50 mb-2'}`}>
                <img src={game.thumbnail_url} className="w-full h-full object-cover" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent flex items-end p-5">
-                 <p className="text-white font-black text-sm truncate tracking-wide">{game.title}</p>
+               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex items-end p-5">
+                 <p className={`text-white font-black truncate tracking-wide ${selectedIndex === idx ? 'text-lg text-[#1ed760]' : 'text-sm'}`}>{game.title}</p>
                </div>
              </div>
            ))}
