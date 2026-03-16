@@ -4,12 +4,12 @@ import { useEffect, useState, use, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// 🔥 Added controller_type to the interface
+// 🔥 NEXT-GEN: Added controller_url to the interface
 interface Game {
   id: number;
   title: string;
   iframe_url: string;
-  controller_type?: string; 
+  controller_url?: string; 
 }
 
 export default function GamePage({ params }: { params: Promise<{ id: string }> }) {
@@ -27,12 +27,12 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
       if (data) {
         setGame(data);
         
-        // 🔥 NEXT-GEN: Tell mobile to switch to this game's specific controller
+        // 🔥 SIGNAL TO MOBILE: Load custom HTML URL if available, else keep default
         if (channelRef.current) {
           channelRef.current.send({
             type: 'broadcast',
             event: 'set_controller',
-            payload: { controller_type: data.controller_type || 'default' }
+            payload: { controller_url: data.controller_url || null }
           });
         }
       }
@@ -44,11 +44,11 @@ export default function GamePage({ params }: { params: Promise<{ id: string }> }
           const cmd = payload.payload.command;
           
           if (cmd === 'HOME') {
-            // 🔥 Reset mobile controller to default before leaving the game
+            // 🔥 Reset mobile to Default when leaving the game
             channel.send({ 
               type: 'broadcast', 
               event: 'set_controller', 
-              payload: { controller_type: 'default' } 
+              payload: { controller_url: null } 
             });
             router.push(`/?state=dashboard&room=${roomCode}`);
           } else {

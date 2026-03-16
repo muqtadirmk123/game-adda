@@ -5,16 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
-// interface for Game including Next-Gen columns
-interface Game { 
-  id: number; 
-  title: string; 
-  thumbnail_url: string; 
-  iframe_url: string; 
-  category: string; 
-  video_url?: string; 
-  controller_type?: string; 
-}
+// 🔥 Naye columns: video_url aur controller_url
+interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; video_url?: string; controller_url?: string; }
 interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
@@ -35,7 +27,7 @@ export default function Home() {
   const playersRef = useRef(players);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const isMutedRef = useRef(false);
-  const channelRef = useRef<any>(null); // 🔥 For sending signals to mobiles
+  const channelRef = useRef<any>(null); 
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
   useEffect(() => { gamesRef.current = games; }, [games]);
@@ -283,13 +275,8 @@ export default function Home() {
                playSound('select');
                setViewState('dashboard');
                setActiveGame(null);
-               // 🔥 NEXT-GEN: Reset mobile to default controller
                if (channelRef.current) {
-                 channelRef.current.send({ 
-                   type: 'broadcast', 
-                   event: 'set_controller', 
-                   payload: { controller_type: 'default' } 
-                 });
+                 channelRef.current.send({ type: 'broadcast', event: 'set_controller', payload: { controller_url: null } });
                }
              } else {
                sendCommandToGame(cmd); 
@@ -316,12 +303,11 @@ export default function Home() {
                  if (selectedGame && selectedGame.iframe_url) {
                    setActiveGame(selectedGame);
                    setViewState('playing');
-                   // 🔥 NEXT-GEN: Signal mobile to switch controller layout
                    if (channelRef.current) {
                      channelRef.current.send({ 
                         type: 'broadcast', 
                         event: 'set_controller', 
-                        payload: { controller_type: selectedGame.controller_type || 'default' } 
+                        payload: { controller_url: selectedGame.controller_url || null } 
                      });
                    }
                  } else {
@@ -336,7 +322,7 @@ export default function Home() {
 
       channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          channelRef.current = channel; // 🔥 Save channel reference
+          channelRef.current = channel; 
         }
       });
 
@@ -472,7 +458,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0">
            {highlightedGame?.video_url ? (
              <video 
-               key={highlightedGame.id} // 🔥 Refreshes video when selection changes
+               key={highlightedGame.id}
                src={highlightedGame.video_url} 
                autoPlay 
                loop 

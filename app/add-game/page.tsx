@@ -15,9 +15,10 @@ export default function AddGame() {
   const [category, setCategory] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState('');
-  // 🔥 NEW FIELDS
+  
+  // 🔥 NEXT-GEN FIELDS
   const [videoUrl, setVideoUrl] = useState('');
-  const [controllerType, setControllerType] = useState('default');
+  const [controllerUrl, setControllerUrl] = useState(''); // 🔥 Replaced controllerType with URL
 
   const [status, setStatus] = useState({ type: '', message: '' });
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,7 @@ export default function AddGame() {
     setLoading(true);
     setStatus({ type: 'info', message: 'Adding game to database...' });
 
-    // 🔥 Updated insert to include video_url and controller_type
+    // 🔥 Update: Submitting controller_url instead of type
     const { error } = await supabase
       .from('games')
       .insert([{ 
@@ -48,14 +49,15 @@ export default function AddGame() {
         thumbnail_url: thumbnailUrl, 
         iframe_url: iframeUrl,
         video_url: videoUrl,
-        controller_type: controllerType
+        controller_url: controllerUrl || null // Send null if empty
       }]);
 
     if (error) {
       setStatus({ type: 'error', message: `Failed: ${error.message}` });
     } else {
       setStatus({ type: 'success', message: '🎉 Game Added Successfully!' });
-      setTitle(''); setCategory(''); setThumbnailUrl(''); setIframeUrl(''); setVideoUrl(''); setControllerType('default');
+      // Reset form
+      setTitle(''); setCategory(''); setThumbnailUrl(''); setIframeUrl(''); setVideoUrl(''); setControllerUrl('');
     }
     setLoading(false);
   };
@@ -101,7 +103,6 @@ export default function AddGame() {
             <input type="url" required value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} className="w-full bg-[#121220] border border-gray-700 text-white px-4 py-3 rounded-xl focus:border-fuchsia-500 outline-none" />
           </div>
 
-          {/* 🔥 NEW VIDEO URL FIELD */}
           <div>
             <label className="block text-sm font-bold text-gray-300 mb-2">Video Trailer URL (.mp4)</label>
             <input type="url" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://example.com/trailer.mp4" className="w-full bg-[#121220] border border-gray-700 text-white px-4 py-3 rounded-xl focus:border-cyan-500 outline-none" />
@@ -112,13 +113,10 @@ export default function AddGame() {
             <input type="url" required value={iframeUrl} onChange={(e) => setIframeUrl(e.target.value)} className="w-full bg-[#121220] border border-gray-700 text-white px-4 py-3 rounded-xl focus:border-fuchsia-500 outline-none" />
           </div>
 
-          {/* 🔥 NEW CONTROLLER TYPE DROPDOWN */}
+          {/* 🔥 NEW DYNAMIC CONTROLLER URL FIELD */}
           <div>
-            <label className="block text-sm font-bold text-gray-300 mb-2">Controller Layout</label>
-            <select value={controllerType} onChange={(e) => setControllerType(e.target.value)} className="w-full bg-[#121220] border border-gray-700 text-white px-4 py-3 rounded-xl focus:border-cyan-500 outline-none appearance-none cursor-pointer">
-              <option value="default">Default (D-Pad + Buttons)</option>
-              <option value="racing">Racing (Steering Wheel + Pedals)</option>
-            </select>
+            <label className="block text-sm font-bold text-gray-300 mb-2">Custom Controller URL (Optional)</label>
+            <input type="url" value={controllerUrl} onChange={(e) => setControllerUrl(e.target.value)} placeholder="Leave empty for default D-Pad" className="w-full bg-[#121220] border border-gray-700 text-white px-4 py-3 rounded-xl focus:border-cyan-500 outline-none" />
           </div>
 
           {status.message && (
