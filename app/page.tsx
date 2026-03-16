@@ -28,7 +28,6 @@ export default function Home() {
   const isMutedRef = useRef(false);
   const channelRef = useRef<any>(null); 
   
-  // 🔥 AUTO-SCROLL REF
   const gameListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { viewStateRef.current = viewState; }, [viewState]);
@@ -54,7 +53,6 @@ export default function Home() {
     }
   };
 
-  // 🔥 VIP AUTO-SCROLL LOGIC
   useEffect(() => {
     if (viewState === 'dashboard' && gameListRef.current) {
       const container = gameListRef.current;
@@ -385,17 +383,32 @@ export default function Home() {
     );
   }
 
+  // 🔥 VIP 3D ANIMATED SPLASH SCREEN 🔥
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-[#050511] to-[#050511]"></div>
-        <div className="relative z-10 flex flex-col items-center animate-in fade-in zoom-in duration-1000">
-          <div className="text-6xl font-extrabold tracking-tighter mb-6">
+        {/* Custom Keyframe Animation Injector */}
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes epicSpin {
+            0% { transform: scale(0) rotateZ(-180deg) rotateY(360deg); filter: blur(20px); opacity: 0; }
+            50% { transform: scale(1.2) rotateZ(10deg) rotateY(0deg); filter: blur(0px); opacity: 1; }
+            100% { transform: scale(1) rotateZ(0deg) rotateY(0deg); opacity: 1; }
+          }
+          .animate-epic { animation: epicSpin 1.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        `}} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-900/30 via-[#050511] to-[#050511]"></div>
+        
+        <div className="relative z-10 flex flex-col items-center animate-epic">
+          {/* 🔥 3D Animated Logo */}
+          <img src="/logo.png" alt="GameAdda Logo" className="w-48 h-48 mb-8 object-contain drop-shadow-[0_0_40px_rgba(34,211,238,0.8)]" />
+          
+          <div className="text-7xl font-extrabold tracking-tighter mb-8 drop-shadow-2xl">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
           </div>
-          <div className="h-1 w-64 bg-gray-900 rounded-full overflow-hidden relative">
-             <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-fuchsia-500 to-cyan-500 animate-[progress_1.5s_infinite_linear]"></div>
+          
+          <div className="h-1.5 w-80 bg-white/10 rounded-full overflow-hidden relative shadow-[0_0_15px_rgba(217,70,239,0.5)]">
+             <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-cyan-400 animate-[progress_1s_infinite_linear]"></div>
           </div>
         </div>
       </main>
@@ -409,10 +422,16 @@ export default function Home() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] bg-fuchsia-600/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="relative z-10 w-[90%] max-w-6xl h-[80vh] bg-white/[0.02] backdrop-blur-2xl border border-white/10 rounded-[3rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row overflow-hidden">
           <div className="flex-1 p-12 lg:p-16 flex flex-col justify-center border-b md:border-b-0 md:border-r border-white/5 relative">
-            <div className="absolute top-8 left-8 lg:top-12 lg:left-12 text-3xl font-extrabold tracking-tighter">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+            
+            {/* 🔥 Pairing Screen Logo */}
+            <div className="absolute top-8 left-8 lg:top-12 lg:left-12 flex items-center gap-3 text-3xl font-extrabold tracking-tighter">
+              <img src="/logo.png" alt="GA Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
+              <div>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+              </div>
             </div>
+
             <div className="mt-8 lg:mt-0">
               <h2 className="text-5xl font-black text-white mb-4 tracking-tight">Link Device</h2>
               <p className="text-gray-400 text-lg mb-10">Scan the visual code or navigate to <span className="text-cyan-400 font-bold">gameadda.com</span> on your phone.</p>
@@ -473,14 +492,12 @@ export default function Home() {
     );
   }
 
-  // 🔥 100% ERROR-FREE VIP CONSOLE DASHBOARD UI 🔥
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
       <main className="h-screen w-full bg-[#050511] font-sans overflow-hidden relative flex flex-col">
         <ErrorToast />
         
-        {/* 🔥 CRYSTAL CLEAR BACKGROUND ENGINE 🔥 */}
         <div className="absolute inset-0 z-0 bg-[#050511]">
            {highlightedGame?.video_url ? (
              <video 
@@ -498,15 +515,17 @@ export default function Home() {
                className="w-full h-full object-cover transition-opacity duration-500 opacity-100 bg-[#121220]" 
              />
            )}
-           {/* Only fade the very bottom for text readability, everything else is clear */}
            <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-transparent"></div>
         </div>
 
-        {/* TOP BAR (Glassmorphism, NO Broken Logo) */}
+        {/* 🔥 Dashboard Top Bar Logo 🔥 */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
-           <div className="bg-black/30 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-2xl">
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Game</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-500">Adda</span>
+           <div className="bg-black/30 backdrop-blur-xl px-6 py-3 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-3">
+              <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
+              <div>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Game</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-purple-500">Adda</span>
+              </div>
            </div>
            
            <div className="flex gap-4 items-center">
@@ -526,7 +545,6 @@ export default function Home() {
            </div>
         </div>
 
-        {/* GAME INFO AREA */}
         <div className="relative z-10 flex-1 flex flex-col justify-end px-16 pb-10">
            <div className="max-w-4xl mb-4 animate-in slide-in-from-bottom-8 fade-in duration-700">
               <h4 className="text-cyan-400 text-sm font-bold tracking-[5px] uppercase mb-4 flex items-center gap-3 drop-shadow-md">
@@ -550,7 +568,6 @@ export default function Home() {
            </div>
         </div>
 
-        {/* HORIZONTAL CAROUSEL - SCROLLBARS 100% HIDDEN */}
         <div 
            ref={gameListRef} 
            className="relative z-10 h-64 px-16 pb-10 flex items-end gap-6 overflow-x-auto snap-x"
@@ -584,9 +601,13 @@ export default function Home() {
     <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-3xl font-extrabold tracking-tighter">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+          {/* 🔥 Homepage Top Navbar Logo 🔥 */}
+          <div className="flex items-center gap-3 text-3xl font-extrabold tracking-tighter">
+            <img src="/logo.png" alt="GA Logo" className="w-10 h-10 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
+            <div>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {user ? (
