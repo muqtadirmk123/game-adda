@@ -4,12 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Game { id: number; title: string; thumbnail_url: string; iframe_url: string; category: string; video_url?: string; controller_url?: string; }
 interface Player { id: string; name: string; lastSeen: number; }
 
 export default function Home() {
-  const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard' | 'playing'>('home');
+  // 🔥 Naya state add kiya: 'mobile_keypad'
+  const [viewState, setViewState] = useState<'home' | 'pairing' | 'splash' | 'dashboard' | 'playing' | 'mobile_keypad'>('home');
   const [games, setGames] = useState<Game[]>([]);
   const [filteredGames, setFilteredGames] = useState<Game[]>([]);
   const [categories, setCategories] = useState<string[]>(['All']);
@@ -21,12 +23,16 @@ export default function Home() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [user, setUser] = useState<any>(null);
   
+  // 🔥 Mobile Keypad ke liye state
+  const [inputCode, setInputCode] = useState('');
+  
   const viewStateRef = useRef(viewState);
   const gamesRef = useRef(games);
   const playersRef = useRef(players);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const isMutedRef = useRef(false);
   const channelRef = useRef<any>(null); 
+  const router = useRouter();
   
   const gameListRef = useRef<HTMLDivElement>(null);
 
@@ -88,7 +94,7 @@ export default function Home() {
     try {
       const ctx = audioCtxRef.current;
       const now = ctx.currentTime;
-      
+      // ... Audio implementation remains exact same ...
       const createReverb = (decay: number, duration: number) => {
         const length = ctx.sampleRate * duration;
         const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
@@ -358,14 +364,80 @@ export default function Home() {
     else setFilteredGames(games.filter((g) => g.category === category));
   };
 
+  // 🔥 KEYPAD LOGIC 🔥
+  const handleKeypadPress = (key: string) => {
+    if (navigator.vibrate) navigator.vibrate(30);
+    if (key === 'del') {
+      setInputCode(prev => prev.slice(0, -1));
+    } else if (inputCode.length < 6) {
+      setInputCode(prev => prev + key);
+    }
+  };
+
+  const connectFromMobile = () => {
+    if (navigator.vibrate) navigator.vibrate(50);
+    if (inputCode.length === 6) {
+      router.push(`/remote?code=${inputCode}`);
+    } else {
+      setSystemError("Enter 6 digit room code");
+      setTimeout(() => setSystemError(null), 3000);
+    }
+  };
+
   const ErrorToast = () => {
     if (!systemError) return null;
     return (
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-red-600 text-white px-12 py-6 rounded-[2rem] font-black text-4xl tracking-widest shadow-[0_0_50px_rgba(220,38,38,0.8)] border-4 border-white animate-bounce text-center">
-        ⚠️<br/>{systemError}
+      <div className="absolute top-[10%] left-1/2 -translate-x-1/2 z-[1000] bg-red-600 text-white px-8 py-4 rounded-[2rem] font-black text-xl md:text-3xl tracking-widest shadow-[0_0_50px_rgba(220,38,38,0.8)] border-4 border-white animate-bounce text-center whitespace-nowrap">
+        ⚠️ {systemError}
       </div>
     );
   };
+
+  // 🔥 NEW VIEW: MOBILE KEYPAD UI 🔥
+  if (viewState === 'mobile_keypad') {
+    return (
+      <main className="fixed inset-0 bg-[#050511] text-white flex flex-col items-center py-10 px-6 font-sans touch-none z-[999] overflow-hidden">
+        <ErrorToast />
+        <div className="absolute top-[-20%] left-[-20%] w-[60vw] h-[60vw] bg-cyan-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-20%] w-[60vw] h-[60vw] bg-fuchsia-600/20 rounded-full blur-[100px] pointer-events-none"></div>
+        
+        <button onClick={() => { exitFullScreen(); setViewState('home'); setInputCode(''); }} className="absolute top-6 right-6 text-gray-400 hover:text-white p-2 z-50">
+           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+
+        <img src="/logo.png" alt="GA Logo" className="w-20 h-20 mb-6 mt-4 drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] relative z-10" />
+        <h2 className="text-3xl font-black mb-2 tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 relative z-10">Enter Code</h2>
+        <p className="text-gray-400 text-sm mb-10 text-center max-w-[250px] relative z-10">Check the TV/Desktop screen for the 6-digit room code.</p>
+
+        {/* Input Display */}
+        <div className="flex gap-2 sm:gap-3 mb-12 relative z-10">
+          {[0, 1, 2, 3, 4, 5].map((index) => (
+            <div key={index} className={`w-10 h-14 sm:w-12 sm:h-16 rounded-xl flex items-center justify-center text-2xl font-black font-mono border-b-4 transition-all ${inputCode[index] ? 'border-cyan-400 text-white bg-cyan-900/40 shadow-[0_0_15px_rgba(34,211,238,0.3)]' : 'border-gray-700 bg-white/5 text-gray-600'}`}>
+              {inputCode[index] || '-'}
+            </div>
+          ))}
+        </div>
+
+        {/* Keypad */}
+        <div className="grid grid-cols-3 gap-4 max-w-[320px] w-full relative z-10">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+            <button key={num} onTouchStart={() => handleKeypadPress(num.toString())} className="bg-white/5 border border-white/10 rounded-2xl h-16 text-3xl font-black active:bg-cyan-500/30 active:border-cyan-400 active:scale-95 transition-all backdrop-blur-md shadow-lg text-gray-200">
+              {num}
+            </button>
+          ))}
+          <button onTouchStart={() => handleKeypadPress('del')} className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-2xl h-16 flex items-center justify-center active:bg-red-500 active:text-white active:scale-95 transition-all backdrop-blur-md shadow-lg">
+             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"/></svg>
+          </button>
+          <button onTouchStart={() => handleKeypadPress('0')} className="bg-white/5 border border-white/10 rounded-2xl h-16 text-3xl font-black active:bg-cyan-500/30 active:border-cyan-400 active:scale-95 transition-all backdrop-blur-md shadow-lg text-gray-200">
+            0
+          </button>
+          <button onTouchStart={connectFromMobile} className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-2xl h-16 flex items-center justify-center active:scale-95 transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] border border-cyan-400/50">
+             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"/></svg>
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   if (viewState === 'playing' && activeGame) {
     return (
@@ -383,30 +455,15 @@ export default function Home() {
     );
   }
 
-  // 🔥 VIP 3D ANIMATED SPLASH SCREEN (HUGE Logo w-72 h-72) 🔥
   if (viewState === 'splash') {
     return (
       <main className="h-screen bg-[#050511] flex items-center justify-center overflow-hidden relative">
         <style dangerouslySetInnerHTML={{__html: `
           @keyframes advancedEpicSpin {
-            0% { 
-              transform: scale(0) rotateX(-180deg) rotateZ(-270deg) translateY(-200px); 
-              filter: blur(20px) brightness(0);
-              opacity: 0; 
-            }
-            40% {
-              transform: scale(1.1) rotateX(20deg) rotateZ(15deg) translateY(0); 
-              filter: blur(0px) brightness(1.5);
-              opacity: 1;
-            }
-            60% {
-              transform: scale(1) rotateX(-5deg) rotateZ(-5deg);
-              filter: brightness(1);
-            }
-            100% { 
-              transform: scale(1) rotateX(0deg) rotateZ(0deg) translateY(0); 
-              opacity: 1; 
-            }
+            0% { transform: scale(0) rotateX(-180deg) rotateZ(-270deg) translateY(-200px); filter: blur(20px) brightness(0); opacity: 0; }
+            40% { transform: scale(1.1) rotateX(20deg) rotateZ(15deg) translateY(0); filter: blur(0px) brightness(1.5); opacity: 1; }
+            60% { transform: scale(1) rotateX(-5deg) rotateZ(-5deg); filter: brightness(1); }
+            100% { transform: scale(1) rotateX(0deg) rotateZ(0deg) translateY(0); opacity: 1; }
           }
           .animate-epic-advanced { animation: advancedEpicSpin 2.5s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
         `}} />
@@ -428,7 +485,6 @@ export default function Home() {
     );
   }
 
-  // 🔥 PAIRING SCREEN (Logo Bada w-24 h-24 -my-6) 🔥
   if (viewState === 'pairing') {
     return (
       <main className="h-screen w-full bg-[#050511] font-sans relative flex items-center justify-center overflow-hidden">
@@ -505,7 +561,6 @@ export default function Home() {
     );
   }
 
-  // 🔥 GAMING PORTAL (DASHBOARD) - Logo Chota aur Sleek (w-12 h-12) 🔥
   if (viewState === 'dashboard') {
     const highlightedGame = filteredGames[selectedIndex];
     return (
@@ -532,7 +587,6 @@ export default function Home() {
            <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-[#050511] via-[#050511]/70 to-transparent"></div>
         </div>
 
-        {/* Dashboard Top Bar (Compact Box, Small Logo) */}
         <div className="relative z-10 w-full p-8 flex justify-between items-center">
            <div className="bg-black/30 backdrop-blur-xl px-5 py-2.5 rounded-2xl border border-white/10 text-3xl font-extrabold tracking-tighter drop-shadow-2xl flex items-center gap-3">
               <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
@@ -611,13 +665,13 @@ export default function Home() {
     );
   }
 
-  // 🔥 LANDING PAGE HOME (Logo Bada w-20 h-20 -my-4) 🔥
+  // 🔥 RESPONSIVE LANDING PAGE (With Mobile Connect Button) 🔥
   return (
-    <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500">
+    <main className="min-h-screen bg-[#050511] text-white font-sans selection:bg-fuchsia-500 overflow-x-hidden">
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-[#0a0a1a]/80 border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4 text-4xl font-extrabold tracking-tighter">
-            <img src="/logo.png" alt="GA Logo" className="w-20 h-20 -my-4 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] relative z-20" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-4 text-2xl sm:text-4xl font-extrabold tracking-tighter">
+            <img src="/logo.png" alt="GA Logo" className="w-12 h-12 sm:w-20 sm:h-20 sm:-my-4 object-contain drop-shadow-[0_0_15px_rgba(34,211,238,0.7)] relative z-20" />
             <div>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600">Game</span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-500 to-purple-600">Adda</span>
@@ -627,17 +681,20 @@ export default function Home() {
             {user ? (
               <div className="flex items-center gap-4">
                 <span className="text-xs text-cyan-400 hidden sm:inline-block font-mono border border-cyan-900 bg-cyan-900/20 px-3 py-1.5 rounded-full">{user.email}</span>
-                <button onClick={() => supabase.auth.signOut()} className="bg-red-600/20 text-red-400 border border-red-600/50 px-5 py-2 rounded-full text-sm font-bold">Logout</button>
+                <button onClick={() => supabase.auth.signOut()} className="bg-red-600/20 text-red-400 border border-red-600/50 px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-bold">Logout</button>
               </div>
             ) : (
-              <Link href="/login" className="bg-gradient-to-r from-cyan-600 to-blue-700 px-6 py-2 rounded-full text-sm font-bold text-white shadow-lg">Login / Join</Link>
+              <Link href="/login" className="bg-gradient-to-r from-cyan-600 to-blue-700 px-4 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold text-white shadow-lg">Login</Link>
             )}
           </div>
         </div>
       </nav>
-      <section className="relative max-w-7xl mx-auto px-6 py-16 flex flex-col items-center text-center">
-        <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
-        <p className="text-gray-400 text-lg md:text-xl max-w-2xl font-medium mb-10">Use your phone as a controller and dive into the arcade.</p>
+      
+      <section className="relative max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 flex flex-col items-center text-center">
+        <h1 className="text-4xl sm:text-5xl md:text-7xl font-black mb-4 sm:mb-6 leading-tight">Play Instantly. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-fuchsia-500">Zero Downloads.</span></h1>
+        <p className="text-gray-400 text-base sm:text-lg md:text-xl max-w-2xl font-medium mb-8 sm:mb-10 px-2">Use your phone as a controller and dive into the arcade.</p>
+        
+        {/* 🔥 Desktop Button: Start Playing Now */}
         <button 
           onClick={() => { 
             enterFullScreen(); 
@@ -647,25 +704,42 @@ export default function Home() {
             } 
             setViewState('pairing'); 
           }} 
-          className="bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10"
+          className="hidden md:flex bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-12 py-5 rounded-full text-2xl font-black shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:scale-105 active:scale-95 transition-all uppercase tracking-tighter mb-10 items-center gap-3"
         >
+          <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           Start playing now
         </button>
+
+        {/* 🔥 Mobile Button: Connect Controller 🔥 */}
+        <button 
+          onClick={() => { 
+            enterFullScreen(); 
+            setViewState('mobile_keypad'); 
+          }} 
+          className="flex md:hidden bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white w-full max-w-[300px] justify-center py-4 rounded-full text-xl font-black shadow-[0_0_30px_rgba(217,70,239,0.5)] active:scale-95 transition-all uppercase tracking-widest mb-10 items-center gap-3"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+          Connect
+        </button>
       </section>
-      <section className="max-w-7xl mx-auto px-6 pb-24 relative z-10 pt-4">
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-24 relative z-10 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-10 sm:mb-12">
           {categories.map((category) => (
-            <button key={category} onClick={() => handleFilter(category)} className={`px-6 py-2 rounded-full font-bold text-sm uppercase transition-all border ${activeCategory === category ? 'bg-cyan-500 border-transparent text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'bg-[#121220] border-gray-700 text-gray-400 hover:border-cyan-500'}`}>{category}</button>
+            <button key={category} onClick={() => handleFilter(category)} className={`px-4 sm:px-6 py-2 rounded-full font-bold text-xs sm:text-sm uppercase transition-all border ${activeCategory === category ? 'bg-cyan-500 border-transparent text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]' : 'bg-[#121220] border-gray-700 text-gray-400 hover:border-cyan-500'}`}>{category}</button>
           ))}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
           {filteredGames.map((game) => (
-            <div key={game.id} className="group relative bg-[#121220] rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]">
-              <div className="relative h-52 overflow-hidden">
+            <div key={game.id} className="group relative bg-[#121220] rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-800 transition-all duration-500 hover:border-cyan-400 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]">
+              <div className="relative h-32 sm:h-52 overflow-hidden">
                 <img src={game.thumbnail_url} alt={game.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute top-4 right-4"><span className="bg-black/80 backdrop-blur-md text-[10px] font-bold text-cyan-400 px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div>
+                <div className="absolute top-2 right-2 sm:top-4 sm:right-4"><span className="bg-black/80 backdrop-blur-md text-[8px] sm:text-[10px] font-bold text-cyan-400 px-2 sm:px-3 py-1 rounded-full border border-gray-700 uppercase tracking-widest">{game.category}</span></div>
               </div>
-              <div className="p-6"><h3 className="text-xl font-bold mb-4 truncate group-hover:text-cyan-400 transition-colors">{game.title}</h3><div className="block w-full text-center py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all bg-gray-800/50 text-gray-400">Play Game</div></div>
+              <div className="p-3 sm:p-6">
+                <h3 className="text-sm sm:text-xl font-bold mb-2 sm:mb-4 truncate group-hover:text-cyan-400 transition-colors">{game.title}</h3>
+                <div className="hidden sm:block w-full text-center py-4 rounded-2xl font-black text-xs uppercase tracking-[2px] transition-all bg-gray-800/50 text-gray-400">Play Game</div>
+              </div>
             </div>
           ))}
         </div>
